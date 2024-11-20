@@ -15,8 +15,8 @@ class SplashScreen extends StatelessWidget {
             child: SizedBox(
               width: 300, // Set a specific width
               height: 300, // Set a specific height
-              child:
-                  LottieBuilder.asset("Lottie/Animation - 1729767849417.json"),
+              child: LottieBuilder.asset(
+                  "assets/Lottie/Animation - 1729767849417.json"),
             ),
           ),
           Text(
