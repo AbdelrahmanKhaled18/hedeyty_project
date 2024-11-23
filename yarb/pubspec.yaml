@@ -65,6 +65,7 @@ flutter:
   assets:
       - assets/Lottie/Animation - 1729767849417.json
       - assets/gift.webp
+      - assets/Gift_Box_Explode.gif
   #   - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see
