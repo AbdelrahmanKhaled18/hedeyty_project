@@ -45,4 +45,5 @@ class DatabaseHelper {
         'FOREIGN KEY (friend_id) REFERENCES users(id) ON DELETE CASCADE)');
   }
 
+
 }
