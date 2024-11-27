@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:yarb/database/database_helper.dart';
 import 'package:yarb/splash_screen.dart';
 
 final theme = ThemeData(
@@ -10,6 +11,7 @@ final theme = ThemeData(
   ),
   textTheme: GoogleFonts.latoTextTheme(),
 );
+
 
 void main() {
   runApp(const MaterialApp(

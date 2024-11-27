@@ -60,7 +60,7 @@ class StartScreen extends StatelessWidget {
               Navigator.push(
                   context,
                   MaterialPageRoute(
-                      builder: (context) =>  const SignUpScreen()));
+                      builder: (context) => const SignUpScreen()));
             },
             style: OutlinedButton.styleFrom(
               padding:

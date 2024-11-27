@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:yarb/event_list.dart';
+import 'package:yarb/gift_list.dart';
 import 'package:yarb/home_screen.dart';
 import 'package:yarb/signup_screen.dart';
+import 'package:yarb/tabs.dart';
 
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
@@ -36,9 +39,9 @@ class LoginScreen extends StatelessWidget {
               child: ElevatedButton(
                 onPressed: () {
                   Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(builder: (context) => const HomeScreen()),
-                  );
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => const TabsScreen()));
                 },
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 15),
