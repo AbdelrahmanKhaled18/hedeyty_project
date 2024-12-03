@@ -1,12 +1,53 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:yarb/event_list.dart';
-import 'package:yarb/gift_list.dart';
-import 'package:yarb/home_screen.dart';
 import 'package:yarb/signup_screen.dart';
 import 'package:yarb/tabs.dart';
 
-class LoginScreen extends StatelessWidget {
+class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
+
+  @override
+  _LoginScreenState createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+
+  bool _isLoading = false;
+
+  // Function to handle login
+  Future<void> _login() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // Sign in using email and password
+      UserCredential userCredential = await _auth.signInWithEmailAndPassword(
+        email: _emailController.text,
+        password: _passwordController.text,
+      );
+
+      // On success, navigate to the home screen
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const TabsScreen(),
+        ),
+      );
+    } on FirebaseAuthException catch (e) {
+      // Handle errors
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message ?? 'Login failed')),
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -19,16 +60,18 @@ class LoginScreen extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const TextField(
-              decoration: InputDecoration(
+            TextField(
+              controller: _emailController,
+              decoration: const InputDecoration(
                 labelText: 'Email',
                 border: OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 20),
-            const TextField(
+            TextField(
+              controller: _passwordController,
               obscureText: true,
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
                 labelText: 'Password',
                 border: OutlineInputBorder(),
               ),
@@ -37,30 +80,28 @@ class LoginScreen extends StatelessWidget {
             SizedBox(
               width: double.infinity, // Full-width button
               child: ElevatedButton(
-                onPressed: () {
-                  Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => const TabsScreen()));
-                },
+                onPressed: _isLoading ? null : _login,
+                // Disable button when loading
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 15),
-                  // Only vertical padding
                   backgroundColor: Colors.teal,
-                  // Button background color
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(20), // Rounded corners
                   ),
                   elevation: 2, // Subtle shadow effect
                 ),
-                child: const Text(
-                  'Log in',
-                  style: TextStyle(
-                    fontSize: 16, // Font size
-                    fontWeight: FontWeight.w500, // Medium text weight
-                    color: Colors.white, // White text color for contrast
-                  ),
-                ),
+                child: _isLoading
+                    ? const CircularProgressIndicator(
+                        color: Colors.white,
+                      )
+                    : const Text(
+                        'Log in',
+                        style: TextStyle(
+                          fontSize: 16, // Font size
+                          fontWeight: FontWeight.w500, // Medium text weight
+                          color: Colors.white, // White text color for contrast
+                        ),
+                      ),
               ),
             ),
             const SizedBox(height: 20),

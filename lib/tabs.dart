@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:yarb/event_list.dart';
 import 'package:yarb/home_screen.dart';
@@ -10,6 +11,8 @@ class TabsScreen extends StatefulWidget {
     return _TabsScreenState();
   }
 }
+
+final user=FirebaseAuth.instance.currentUser;
 
 class _TabsScreenState extends State<TabsScreen> {
   int _selectedPageIndex = 0;
