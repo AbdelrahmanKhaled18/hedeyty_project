@@ -45,48 +45,59 @@ class _EventListScreenState extends State<EventListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Event List'),
-        automaticallyImplyLeading: false,
-        actions: [
-          PopupMenuButton<String>(
-            onSelected: (value) => sortEvents(value),
-            itemBuilder: (context) => [
-              const PopupMenuItem(value: 'name', child: Text('Sort by Name')),
-              const PopupMenuItem(
-                  value: 'category', child: Text('Sort by Category')),
-              const PopupMenuItem(
-                  value: 'status', child: Text('Sort by Status')),
-            ],
-          ),
-        ],
-      ),
-      body: ListView.builder(
-        itemCount: events.length,
-        itemBuilder: (context, index) {
-          final event = events[index];
-          return ListTile(
-            title: Text(event['name']),
-            subtitle: Text('${event['category']} - ${event['status']}'),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
+      body: Column(
+        children: [
+          // Custom Top Bar for sorting
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                IconButton(
-                  icon: const Icon(Icons.edit),
-                  onPressed: () {
-                    _showEditEventDialog(context, index, event);
-                  },
+                const Text(
+                  'Event List',
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.delete),
-                  onPressed: () {
-                    deleteEvent(index);
-                  },
+                PopupMenuButton<String>(
+                  onSelected: (value) => sortEvents(value),
+                  itemBuilder: (context) => [
+                    const PopupMenuItem(value: 'name', child: Text('Sort by Name')),
+                    const PopupMenuItem(value: 'category', child: Text('Sort by Category')),
+                    const PopupMenuItem(value: 'status', child: Text('Sort by Status')),
+                  ],
                 ),
               ],
             ),
-          );
-        },
+          ),
+          Expanded(
+            child: ListView.builder(
+              itemCount: events.length,
+              itemBuilder: (context, index) {
+                final event = events[index];
+                return ListTile(
+                  title: Text(event['name']),
+                  subtitle: Text('${event['category']} - ${event['status']}'),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.edit),
+                        onPressed: () {
+                          _showEditEventDialog(context, index, event);
+                        },
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete),
+                        onPressed: () {
+                          deleteEvent(index);
+                        },
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
@@ -121,9 +132,9 @@ class _EventListScreenState extends State<EventListScreen> {
               value: status,
               items: ['Upcoming', 'Current', 'Past']
                   .map((status) => DropdownMenuItem(
-                        value: status,
-                        child: Text(status),
-                      ))
+                value: status,
+                child: Text(status),
+              ))
                   .toList(),
               onChanged: (value) => status = value!,
             ),
@@ -173,9 +184,9 @@ class _EventListScreenState extends State<EventListScreen> {
               value: status,
               items: ['Upcoming', 'Current', 'Past']
                   .map((status) => DropdownMenuItem(
-                        value: status,
-                        child: Text(status),
-                      ))
+                value: status,
+                child: Text(status),
+              ))
                   .toList(),
               onChanged: (value) => status = value!,
             ),

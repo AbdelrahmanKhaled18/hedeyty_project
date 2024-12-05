@@ -29,21 +29,50 @@ class DatabaseHelper {
   }
 
   Future<void> _onCreate(Database db, int version) async {
-    await db.execute('''CREATE TABLE users(id INTEGER PRIMARY KEY AUTOINCREMENT
-        , name TEXT, email TEXT, password TEXT, preferences TEXT)''');
-    await db.execute(
-        'CREATE TABLE events(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT,'
-        ' date TEXT, location TEXT, description TEXT, user_id INTEGER, '
-        'FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE)');
-    await db.execute(
-        'CREATE TABLE gifts(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, '
-        'description TEXT, category TEXT, price REAL, status TEXT, '
-        'event_id INTEGER, FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE)');
-    await db.execute('CREATE TABLE friends(user_id INTEGER, friend_id INTEGER, '
-        'PRIMARY KEY(user_id, friend_id), '
-        'FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE, '
-        'FOREIGN KEY (friend_id) REFERENCES users(id) ON DELETE CASCADE)');
-  }
+    await db.execute('''
+    CREATE TABLE users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT,
+      email TEXT,
+      password TEXT,
+      preferences TEXT
+    )
+  ''');
 
+    await db.execute('''
+    CREATE TABLE events (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT,
+      date TEXT,
+      location TEXT,
+      description TEXT,
+      user_id INTEGER,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  ''');
+
+    await db.execute('''
+    CREATE TABLE gifts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT,
+      description TEXT,
+      category TEXT,
+      price REAL,
+      status TEXT,
+      event_id INTEGER,
+      FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE
+    )
+  ''');
+
+    await db.execute('''
+    CREATE TABLE friends (
+      user_id INTEGER,
+      friend_id INTEGER,
+      PRIMARY KEY (user_id, friend_id),
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+      FOREIGN KEY (friend_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  ''');
+  }
 
 }
