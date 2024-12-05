@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:yarb/signup_screen.dart';
-
+import 'package:yarb/screens/signup_screen.dart';
 import 'login_screen.dart';
 
 class StartScreen extends StatelessWidget {

@@ -1,15 +1,11 @@
 import 'package:flutter/material.dart';
 
 class HomeScreen extends StatelessWidget {
-
   const HomeScreen({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Home Page'),
-        automaticallyImplyLeading: false,
-      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -65,7 +61,7 @@ class HomeScreen extends StatelessWidget {
                         ? 'Upcoming Events: ${index + 1}'
                         : 'No Upcoming Events'),
                     trailing:
-                        const Icon(Icons.chevron_right, color: Colors.teal),
+                    const Icon(Icons.chevron_right, color: Colors.teal),
                     onTap: () {
                       // Navigate to friend's gift list
                     },

@@ -1,7 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:yarb/signup_screen.dart';
-import 'package:yarb/tabs.dart';
+import 'package:yarb/screens/signup_screen.dart';
+import 'package:yarb/screens/tabs.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -60,21 +60,34 @@ class _LoginScreenState extends State<LoginScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            TextField(
+            TextFormField(
+              keyboardType: TextInputType.emailAddress,
               controller: _emailController,
               decoration: const InputDecoration(
                 labelText: 'Email',
                 border: OutlineInputBorder(),
               ),
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Please enter an email';
+                }
+                return null;
+              },
             ),
             const SizedBox(height: 20),
-            TextField(
+            TextFormField(
               controller: _passwordController,
               obscureText: true,
               decoration: const InputDecoration(
                 labelText: 'Password',
                 border: OutlineInputBorder(),
               ),
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Please enter a password';
+                }
+                return null;
+              },
             ),
             const SizedBox(height: 30),
             SizedBox(
@@ -92,16 +105,16 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 child: _isLoading
                     ? const CircularProgressIndicator(
-                        color: Colors.white,
-                      )
+                  color: Colors.white,
+                )
                     : const Text(
-                        'Log in',
-                        style: TextStyle(
-                          fontSize: 16, // Font size
-                          fontWeight: FontWeight.w500, // Medium text weight
-                          color: Colors.white, // White text color for contrast
-                        ),
-                      ),
+                  'Log in',
+                  style: TextStyle(
+                    fontSize: 16, // Font size
+                    fontWeight: FontWeight.w500, // Medium text weight
+                    color: Colors.white, // White text color for contrast
+                  ),
+                ),
               ),
             ),
             const SizedBox(height: 20),
