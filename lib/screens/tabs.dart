@@ -18,14 +18,13 @@ final user = FirebaseAuth.instance.currentUser;
 
 class _TabsScreenState extends State<TabsScreen> {
   int _selectedPageIndex = 0;
-  final x=user?.displayName;
 
 
   // Define the pages with their titles
   final Map<int, Widget> pages = {
     0: const HomeScreen(),
     1: const EventListScreen(),
-    2: const PledgedGiftsScreen(), // Placeholder for Gifts List screen
+    2: const PledgedGiftsScreen(), 
   };
 
   final List<String> titles = [
@@ -42,7 +41,6 @@ class _TabsScreenState extends State<TabsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    print("a7aaaaaaaaaaaaaaaaaaa" '$x');
     return Scaffold(
       appBar: AppBar(
         title: Text(titles[_selectedPageIndex]), // Display title based on selected page

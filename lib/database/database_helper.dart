@@ -21,24 +21,25 @@ class DatabaseHelper {
   Future<Database> _initDatabase() async {
     final databasePath = await getDatabasesPath();
     final path = join(databasePath, 'hedieaty.db');
-
     return await openDatabase(path, version: 1, onCreate: _onCreate,
         onOpen: (db) async {
       await db.execute('PRAGMA foreign_keys = ON');
     });
   }
 
+
+
   Future<void> _onCreate(Database db, int version) async {
     await db.execute('''
     CREATE TABLE users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT,
-      email TEXT,
+      email TEXT UNIQUE,
       password TEXT,
-      preferences TEXT
+      preferences TEXT,
+      firestore_id TEXT UNIQUE
     )
   ''');
-
     await db.execute('''
     CREATE TABLE events (
       id INTEGER PRIMARY KEY AUTOINCREMENT,

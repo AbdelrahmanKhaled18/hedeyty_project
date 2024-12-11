@@ -15,22 +15,19 @@ class MainDrawer extends StatelessWidget {
       child: ListView(
         padding: EdgeInsets.zero,
         children: [
-          // Drawer Header
           UserAccountsDrawerHeader(
             accountName: Text(user?.displayName ?? 'Guest'),
             accountEmail: Text(user?.email ?? 'Not logged in'),
             currentAccountPicture: CircleAvatar(
               backgroundColor: Colors.white,
-              child: Text(user?.displayName?.substring(0, 1) ?? 'G'),
+              child: user?.photoURL != null ? null : Text(user?.displayName?.substring(0, 1) ?? 'G'),
             ),
           ),
-          // Drawer Items
           ListTile(
             leading: const Icon(Icons.settings),
             title: const Text('Profile'),
             onTap: () {
-              Navigator.pop(context); // Close the drawer
-              // Navigate to Profile Screen
+              Navigator.pop(context);
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => ProfileScreen()),
@@ -53,6 +50,3 @@ class MainDrawer extends StatelessWidget {
     );
   }
 }
-
-
-
