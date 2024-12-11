@@ -11,18 +11,35 @@ class FriendDAO {
   // Get all friends for a specific user
   Future<List<Friend>> getFriends(int userId) async {
     final db = await DatabaseHelper().database;
-    final List<Map<String, dynamic>> friendMaps = await db.query('friends',
-        where: 'user_id = ?', whereArgs: [userId]);
+    final List<Map<String, dynamic>> friendMaps = await db.query(
+      'friends',
+      where: 'user_id = ?',
+      whereArgs: [userId],
+    );
 
     return List.generate(friendMaps.length, (i) {
       return Friend.fromMap(friendMaps[i]);
     });
   }
 
+  // Check if a friend relationship exists
+  Future<bool> isFriendExists(int userId, int friendId) async {
+    final db = await DatabaseHelper().database;
+    final List<Map<String, dynamic>> result = await db.query(
+      'friends',
+      where: 'user_id = ? AND friend_id = ?',
+      whereArgs: [userId, friendId],
+    );
+    return result.isNotEmpty;
+  }
+
   // Delete a friend by user ID and friend ID
   Future<int> deleteFriend(int userId, int friendId) async {
     final db = await DatabaseHelper().database;
-    return await db.delete('friends',
-        where: 'user_id = ? AND friend_id = ?', whereArgs: [userId, friendId]);
+    return await db.delete(
+      'friends',
+      where: 'user_id = ? AND friend_id = ?',
+      whereArgs: [userId, friendId],
+    );
   }
 }
