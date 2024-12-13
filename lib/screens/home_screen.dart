@@ -1,13 +1,14 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:yarb/database/DAO/friend_dao.dart';
-import 'package:yarb/database/models/friend.dart';
+import '../database/DAO/friend_dao.dart';
 import '../database/database_helper.dart';
+import '../database/models/friend.dart';
 import '../widgets/friend_item.dart';
+import 'event_creation.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({Key? key}) : super(key: key);
+  const HomeScreen({super.key});
 
   @override
   _HomeScreenState createState() => _HomeScreenState();
@@ -37,9 +38,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _onSearchChanged() {
     if (_searchController.text.isEmpty) {
-      setState(() {
-        searchResults = [];
-      });
+      setState(() => searchResults = []);
     } else {
       searchUsers(_searchController.text);
     }
@@ -57,21 +56,29 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _fetchFriends() async {
     setState(() => _isLoading = true);
     String userId = FirebaseAuth.instance.currentUser!.uid;
+
     try {
       var friendsSnapshot = await FirebaseFirestore.instance
           .collection('friends')
-          .where('user_id', isEqualTo: userId)
+          .where('user_ids', arrayContains: userId)
           .get();
 
       List<Map<String, dynamic>> fetchedFriends = [];
+
       for (var doc in friendsSnapshot.docs) {
-        String friendId = doc.data()['friend_id'];
+        List<dynamic> userIds = doc['user_ids'];
+        String friendId = userIds.firstWhere((id) => id != userId);
+
         var friendData = await FirebaseFirestore.instance
             .collection('users')
             .doc(friendId)
             .get();
+
         if (friendData.exists) {
-          fetchedFriends.add({'id': friendData.id, ...friendData.data()!});
+          fetchedFriends.add({
+            'id': friendData.id,
+            ...friendData.data()!,
+          });
         }
       }
 
@@ -91,13 +98,12 @@ class _HomeScreenState extends State<HomeScreen> {
     var collection = FirebaseFirestore.instance.collection('users');
     var snapshot = await collection
         .where('name', isGreaterThanOrEqualTo: query)
-        .where('name', isLessThanOrEqualTo: query + '\uf8ff')
+        .where('name', isLessThanOrEqualTo: '$query\uf8ff')
         .get();
 
     setState(() {
-      searchResults = snapshot.docs
-          .map((doc) => {'id': doc.id, ...doc.data()!})
-          .toList();
+      searchResults =
+          snapshot.docs.map((doc) => {'id': doc.id, ...doc.data()!}).toList();
     });
   }
 
@@ -107,14 +113,18 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       String userId = FirebaseAuth.instance.currentUser!.uid;
 
-      // Check for duplicate in Firestore
+      // Check if already friends
       var existingFriendSnapshot = await FirebaseFirestore.instance
           .collection('friends')
-          .where('user_id', isEqualTo: userId)
-          .where('friend_id', isEqualTo: friendFirestoreId)
+          .where('user_ids', arrayContains: userId)
           .get();
 
-      if (existingFriendSnapshot.docs.isNotEmpty) {
+      bool alreadyFriends = existingFriendSnapshot.docs.any((doc) {
+        List<dynamic> userIds = doc['user_ids'];
+        return userIds.contains(friendFirestoreId);
+      });
+
+      if (alreadyFriends) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Friend already added')),
         );
@@ -122,34 +132,23 @@ class _HomeScreenState extends State<HomeScreen> {
         return;
       }
 
-      // Check for duplicate in SQLite
-      int localUserId = await getLocalIdForFirestoreId(userId);
-      int localFriendId = await getLocalIdForFirestoreId(friendFirestoreId);
-      bool isFriendLocal = await FriendDAO()
-          .isFriendExists(localUserId, localFriendId);
-
-      if (isFriendLocal) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Friend already exists locally')),
-        );
-        setState(() => _isLoading = false);
-        return;
-      }
-
       // Add to Firestore
       await FirebaseFirestore.instance.collection('friends').add({
-        'user_id': userId,
-        'friend_id': friendFirestoreId,
+        'user_ids': [userId, friendFirestoreId],
       });
 
-      // Add to local SQLite database
+      // Add to Local Database
+      int localUserId = await getLocalIdForFirestoreId(userId);
+      int localFriendId = await getLocalIdForFirestoreId(friendFirestoreId);
+
       Friend newFriend = Friend(userId: localUserId, friendId: localFriendId);
       await FriendDAO().insertFriend(newFriend);
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Friend added successfully')),
       );
-      _fetchFriends();
+
+      await _fetchFriends();
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to add friend: $e')),
@@ -161,12 +160,16 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<int> getLocalIdForFirestoreId(String firestoreId) async {
     final db = await DatabaseHelper().database;
-    var result = await db
-        .query('users', where: 'firestore_id = ?', whereArgs: [firestoreId]);
+    var result = await db.query(
+      'users',
+      where: 'firestore_id = ?',
+      whereArgs: [firestoreId],
+    );
+
     if (result.isNotEmpty) {
-      return result.first['id'] as int; // Assuming 'id' is the local ID
+      return result.first['id'] as int; // Return the local database ID
     }
-    throw Exception('No local ID found for Firestore ID: $firestoreId');
+    throw Exception('Local ID not found for Firestore ID: $firestoreId');
   }
 
   @override
@@ -181,13 +184,19 @@ class _HomeScreenState extends State<HomeScreen> {
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () {
-                  // Navigate to Create Event/List Page
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const EventCreationPage(),
+                    ),
+                  );
                 },
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 15),
                   backgroundColor: Colors.teal,
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30)),
+                    borderRadius: BorderRadius.circular(30),
+                  ),
                 ),
                 child: const Text(
                   'Create Your Own Event/List',
@@ -212,36 +221,36 @@ class _HomeScreenState extends State<HomeScreen> {
             _isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : Expanded(
-              child: _searchController.text.isEmpty &&
-                  friendsList.isEmpty
-                  ? const Center(
-                child: Text(
-                  'No friends yet',
-                  style: TextStyle(fontSize: 18, color: Colors.grey),
-                ),
-              )
-                  : ListView.builder(
-                itemCount: _searchController.text.isEmpty
-                    ? friendsList.length
-                    : searchResults.length,
-                itemBuilder: (context, index) {
-                  var user = _searchController.text.isEmpty
-                      ? friendsList[index]
-                      : searchResults[index];
-                  bool isFriend = friendsList
-                      .any((friend) => friend['id'] == user['id']);
-                  return FriendListItem(
-                    friendName: user['name'],
-                    index: index,
-                    onTap: () {},
-                    onAddFriend: isFriend
-                        ? null
-                        : () => _addFriend(user['id']),
-                    isFriend: isFriend,
-                  );
-                },
-              ),
-            ),
+                    child: _searchController.text.isEmpty && friendsList.isEmpty
+                        ? const Center(
+                            child: Text(
+                              'No friends yet',
+                              style:
+                                  TextStyle(fontSize: 18, color: Colors.grey),
+                            ),
+                          )
+                        : ListView.builder(
+                            itemCount: _searchController.text.isEmpty
+                                ? friendsList.length
+                                : searchResults.length,
+                            itemBuilder: (context, index) {
+                              var user = _searchController.text.isEmpty
+                                  ? friendsList[index]
+                                  : searchResults[index];
+                              bool isFriend = friendsList
+                                  .any((friend) => friend['id'] == user['id']);
+                              return FriendListItem(
+                                friendName: user['name'],
+                                friendFirestoreId: user['id'],
+                                onTap: () {},
+                                onAddFriend: isFriend
+                                    ? null
+                                    : () => _addFriend(user['id']),
+                                isFriend: isFriend,
+                              );
+                            },
+                          ),
+                  ),
           ],
         ),
       ),

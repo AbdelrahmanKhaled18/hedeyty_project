@@ -48,6 +48,7 @@ class DatabaseHelper {
       location TEXT,
       description TEXT,
       user_id INTEGER,
+      firestore_id TEXT UNIQUE,
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     )
   ''');

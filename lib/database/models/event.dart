@@ -5,6 +5,7 @@ class Event {
   final String? location;
   final String? description;
   final int userId;
+  final String? firestoreId;
 
   Event({
     this.id,
@@ -13,6 +14,7 @@ class Event {
     this.location,
     this.description,
     required this.userId,
+    this.firestoreId,
   });
 
   // Convert an Event into a Map for SQL insertion
@@ -24,6 +26,7 @@ class Event {
       'location': location,
       'description': description,
       'user_id': userId,
+      'firestore_id': firestoreId,
     };
   }
 
@@ -36,6 +39,7 @@ class Event {
       location: map['location'],
       description: map['description'],
       userId: map['user_id'],
+      firestoreId: map['firestore_id'],
     );
   }
 }
