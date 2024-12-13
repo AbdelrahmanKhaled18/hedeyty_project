@@ -1,4 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
+import '../database/DAO/event_dao.dart';
+import '../database/models/event.dart';
+import 'event_creation.dart';
 
 class EventListScreen extends StatefulWidget {
   const EventListScreen({super.key});
@@ -8,204 +14,232 @@ class EventListScreen extends StatefulWidget {
 }
 
 class _EventListScreenState extends State<EventListScreen> {
-  // Sample list of events
-  List<Map<String, dynamic>> events = [
-    {'name': 'Birthday Party', 'category': 'Social', 'status': 'Upcoming'},
-    {'name': 'Team Meeting', 'category': 'Work', 'status': 'Current'},
-    {'name': 'Wedding', 'category': 'Family', 'status': 'Past'},
-  ];
+  late Stream<QuerySnapshot> _eventsStream;
+  final EventDAO _eventDAO = EventDAO();
 
-  String sortBy = 'name'; // Default sorting criterion
-
-  void sortEvents(String criterion) {
-    setState(() {
-      sortBy = criterion;
-      events.sort((a, b) => a[criterion].compareTo(b[criterion]));
-    });
+  @override
+  void initState() {
+    super.initState();
+    _fetchUserEvents();
   }
 
-  void addEvent(String name, String category, String status) {
-    setState(() {
-      events.add({'name': name, 'category': category, 'status': status});
-    });
-  }
-
-  void editEvent(int index, String name, String category, String status) {
-    setState(() {
-      events[index] = {'name': name, 'category': category, 'status': status};
-    });
-  }
-
-  void deleteEvent(int index) {
-    setState(() {
-      events.removeAt(index);
-    });
+  void _fetchUserEvents() {
+    String userId = FirebaseAuth.instance.currentUser!.uid;
+    _eventsStream = FirebaseFirestore.instance
+        .collection('events')
+        .where('user_id', isEqualTo: userId)
+        .snapshots();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Column(
-        children: [
-          // Custom Top Bar for sorting
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Event List',
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                ),
-                PopupMenuButton<String>(
-                  onSelected: (value) => sortEvents(value),
-                  itemBuilder: (context) => [
-                    const PopupMenuItem(value: 'name', child: Text('Sort by Name')),
-                    const PopupMenuItem(value: 'category', child: Text('Sort by Category')),
-                    const PopupMenuItem(value: 'status', child: Text('Sort by Status')),
+      body: StreamBuilder<QuerySnapshot>(
+        stream: _eventsStream,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return const Center(child: Text('No events found.'));
+          }
+
+          final events = snapshot.data!.docs;
+
+          return ListView.builder(
+            itemCount: events.length,
+            itemBuilder: (context, index) {
+              final event = events[index];
+              return ListTile(
+                title: Text(event['name']),
+                subtitle: Text('${event['location']} - ${event['date']}'),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.edit),
+                      onPressed: () {
+                        _showEditEventDialog(event);
+                      },
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.delete),
+                      onPressed: () {
+                        _deleteEvent(event.id);
+                      },
+                    ),
                   ],
                 ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: ListView.builder(
-              itemCount: events.length,
-              itemBuilder: (context, index) {
-                final event = events[index];
-                return ListTile(
-                  title: Text(event['name']),
-                  subtitle: Text('${event['category']} - ${event['status']}'),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.edit),
-                        onPressed: () {
-                          _showEditEventDialog(context, index, event);
-                        },
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.delete),
-                        onPressed: () {
-                          deleteEvent(index);
-                        },
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
+              );
+            },
+          );
+        },
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          _showAddEventDialog(context);
+          // Navigate to EventCreationPage
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const EventCreationPage(),
+            ),
+          ).then((_) {
+            // Refresh events when returning to this page
+            setState(() {});
+          });
         },
         child: const Icon(Icons.add),
       ),
     );
   }
 
-  void _showAddEventDialog(BuildContext context) {
-    String name = '';
-    String category = '';
-    String status = 'Upcoming';
+  Future<void> _deleteEvent(String eventId) async {
+    try {
+      // Get local event by Firestore ID
+      final db = await _eventDAO.getEvents();
+      final localEvent = db.firstWhere(
+              (event) => event.firestoreId == eventId,
+          orElse: () => throw Exception("Event not found locally"));
+
+      // Delete from Firestore
+      await FirebaseFirestore.instance.collection('events').doc(eventId).delete();
+
+      // Delete from local SQLite database
+      await _eventDAO.deleteEvent(localEvent.id!);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Event deleted successfully')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to delete event: $e')),
+      );
+    }
+  }
+
+  void _showEditEventDialog(QueryDocumentSnapshot event) {
+    final TextEditingController nameController =
+    TextEditingController(text: event['name']);
+    final TextEditingController locationController =
+    TextEditingController(text: event['location']);
+    final TextEditingController dateController =
+    TextEditingController(text: event['date']);
+    final TextEditingController descriptionController =
+    TextEditingController(text: event['description']);
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Add New Event'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              decoration: const InputDecoration(labelText: 'Event Name'),
-              onChanged: (value) => name = value,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Edit Event'),
+          content: SingleChildScrollView(
+            child: Column(
+              children: [
+                TextField(
+                  controller: nameController,
+                  decoration: const InputDecoration(labelText: 'Name'),
+                ),
+                TextField(
+                  controller: locationController,
+                  decoration: const InputDecoration(labelText: 'Location'),
+                ),
+                TextField(
+                  controller: dateController,
+                  readOnly: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Date',
+                    suffixIcon: Icon(Icons.calendar_today),
+                  ),
+                  onTap: () async {
+                    DateTime? pickedDate = await showDatePicker(
+                      context: context,
+                      initialDate: DateTime.now(),
+                      firstDate: DateTime.now(),
+                      lastDate: DateTime(2100),
+                    );
+                    if (pickedDate != null) {
+                      String formattedDate =
+                      DateFormat('yyyy-MM-dd').format(pickedDate);
+                      dateController.text = formattedDate;
+                    }
+                  },
+                ),
+                TextField(
+                  controller: descriptionController,
+                  maxLines: 3,
+                  decoration: const InputDecoration(labelText: 'Description'),
+                ),
+              ],
             ),
-            TextField(
-              decoration: const InputDecoration(labelText: 'Category'),
-              onChanged: (value) => category = value,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: const Text('Cancel'),
             ),
-            DropdownButtonFormField<String>(
-              value: status,
-              items: ['Upcoming', 'Current', 'Past']
-                  .map((status) => DropdownMenuItem(
-                value: status,
-                child: Text(status),
-              ))
-                  .toList(),
-              onChanged: (value) => status = value!,
+            ElevatedButton(
+              onPressed: () async {
+                await _editEvent(
+                  event.id,
+                  nameController.text,
+                  dateController.text,
+                  locationController.text,
+                  descriptionController.text,
+                );
+                Navigator.pop(context);
+              },
+              child: const Text('Save'),
             ),
           ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              addEvent(name, category, status);
-              Navigator.pop(context);
-            },
-            child: const Text('Add'),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
-  void _showEditEventDialog(
-      BuildContext context, int index, Map<String, dynamic> event) {
-    String name = event['name'];
-    String category = event['category'];
-    String status = event['status'];
+  Future<void> _editEvent(
+      String eventId,
+      String name,
+      String date,
+      String location,
+      String description,
+      ) async {
+    try {
+      // Update in Firestore
+      await FirebaseFirestore.instance.collection('events').doc(eventId).update({
+        'name': name,
+        'date': date,
+        'location': location,
+        'description': description,
+      });
 
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Edit Event'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              decoration: const InputDecoration(labelText: 'Event Name'),
-              controller: TextEditingController(text: name),
-              onChanged: (value) => name = value,
-            ),
-            TextField(
-              decoration: const InputDecoration(labelText: 'Category'),
-              controller: TextEditingController(text: category),
-              onChanged: (value) => category = value,
-            ),
-            DropdownButtonFormField<String>(
-              value: status,
-              items: ['Upcoming', 'Current', 'Past']
-                  .map((status) => DropdownMenuItem(
-                value: status,
-                child: Text(status),
-              ))
-                  .toList(),
-              onChanged: (value) => status = value!,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              editEvent(index, name, category, status);
-              Navigator.pop(context);
-            },
-            child: const Text('Save'),
-          ),
-        ],
-      ),
-    );
+      // Get local event by Firestore ID
+      final db = await _eventDAO.getEvents();
+      final localEvent = db.firstWhere(
+              (event) => event.firestoreId == eventId,
+          orElse: () => throw Exception("Event not found locally"));
+
+      // Update local SQLite database
+      final updatedEvent = Event(
+        id: localEvent.id,
+        name: name,
+        date: date,
+        location: location,
+        description: description,
+        userId: localEvent.userId,
+        firestoreId: eventId,
+      );
+
+      await _eventDAO.updateEvent(updatedEvent);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Event updated successfully')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to update event: $e')),
+      );
+    }
   }
 }

@@ -1,43 +1,80 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
-class FriendListItem extends StatelessWidget {
+class FriendListItem extends StatefulWidget {
   final String friendName;
-  final int index;
+  final String friendFirestoreId;
   final void Function() onTap;
-  final void Function()? onAddFriend; // Nullable to conditionally show/hide
-  final bool isFriend; // New property to determine if the user is already a friend
+  final void Function()? onAddFriend;
+  final bool isFriend;
 
   const FriendListItem({
     super.key,
     required this.friendName,
-    required this.index,
+    required this.friendFirestoreId,
     required this.onTap,
     this.onAddFriend,
     required this.isFriend,
   });
 
   @override
+  _FriendListItemState createState() => _FriendListItemState();
+}
+
+class _FriendListItemState extends State<FriendListItem> {
+  int upcomingEventsCount = 0;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchUpcomingEvents();
+  }
+
+  Future<void> _fetchUpcomingEvents() async {
+    try {
+      DateTime now = DateTime.now();
+      String currentDate = DateFormat('yyyy-MM-dd').format(now);
+
+      var eventsSnapshot = await FirebaseFirestore.instance
+          .collection('events')
+          .where('user_id', isEqualTo: widget.friendFirestoreId)
+          .get();
+
+      setState(() {
+        upcomingEventsCount = eventsSnapshot.docs.length;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        upcomingEventsCount = 0;
+        _isLoading = false;
+      });
+      debugPrint('Error fetching events: $e');
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return ListTile(
       leading: CircleAvatar(
         radius: 25,
-        backgroundImage: const AssetImage('assets/avatar.jpg'), // Replace with actual image path
+        backgroundImage: const AssetImage('assets/avatar.jpg'),
       ),
-      title: Text(friendName),
-      subtitle: Text(index % 2 == 0
-          ? 'Upcoming Events: ${index + 1}'
+      title: Text(widget.friendName),
+      subtitle: _isLoading
+          ? const Text('Loading events...')
+          : Text(upcomingEventsCount > 0
+          ? 'Upcoming Events: $upcomingEventsCount'
           : 'No Upcoming Events'),
-      trailing: Wrap(
-        spacing: 12, // Space between two icons
-        children: <Widget>[
-          if (!isFriend) // Show Add Friend icon only if not already a friend
-            GestureDetector(
-              onTap: onAddFriend,
-              child: const Icon(Icons.person_add, color: Colors.teal),
-            ),
-        ],
+      trailing: widget.isFriend
+          ? null
+          : IconButton(
+        icon: const Icon(Icons.person_add, color: Colors.teal),
+        onPressed: widget.onAddFriend,
       ),
-      onTap: onTap,
+      onTap: widget.onTap,
     );
   }
 }
