@@ -6,6 +6,7 @@ import '../database/database_helper.dart';
 import '../database/models/friend.dart';
 import '../widgets/friend_item.dart';
 import 'event_creation.dart';
+import 'event_list_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -242,7 +243,16 @@ class _HomeScreenState extends State<HomeScreen> {
                               return FriendListItem(
                                 friendName: user['name'],
                                 friendFirestoreId: user['id'],
-                                onTap: () {},
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => EventListScreen(
+                                          friendId: user['id'],
+                                          friendName: user['name']),
+                                    ),
+                                  );
+                                },
                                 onAddFriend: isFriend
                                     ? null
                                     : () => _addFriend(user['id']),
