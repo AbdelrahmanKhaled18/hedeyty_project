@@ -57,24 +57,65 @@ class _FriendListItemState extends State<FriendListItem> {
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      leading: CircleAvatar(
-        radius: 25,
-        backgroundImage: const AssetImage('assets/avatar.jpg'),
+    return Card(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(15),
       ),
-      title: Text(widget.friendName),
-      subtitle: _isLoading
-          ? const Text('Loading events...')
-          : Text(upcomingEventsCount > 0
-          ? 'Upcoming Events: $upcomingEventsCount'
-          : 'No Upcoming Events'),
-      trailing: widget.isFriend
-          ? null
-          : IconButton(
-        icon: const Icon(Icons.person_add, color: Colors.teal),
-        onPressed: widget.onAddFriend,
+      elevation: 4,
+      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+      child: ListTile(
+        contentPadding: const EdgeInsets.all(16),
+        leading: CircleAvatar(
+          radius: 30,
+          backgroundColor: Colors.teal.shade100,
+          backgroundImage: const AssetImage('assets/avatar.jpg'),
+        ),
+        title: Text(
+          widget.friendName,
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.teal,
+          ),
+        ),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: _isLoading
+              ? const Text(
+                  'Loading events...',
+                  style: TextStyle(fontSize: 14, color: Colors.grey),
+                )
+              : Row(
+                  children: [
+                    const Icon(Icons.event, color: Colors.grey, size: 18),
+                    const SizedBox(width: 8),
+                    Text(
+                      upcomingEventsCount > 0
+                          ? 'Upcoming Events: $upcomingEventsCount'
+                          : 'No Upcoming Events',
+                      style: const TextStyle(fontSize: 14, color: Colors.grey),
+                    ),
+                  ],
+                ),
+        ),
+        trailing: widget.isFriend
+            ? null
+            : ElevatedButton.icon(
+                icon:
+                    const Icon(Icons.person_add, color: Colors.white, size: 18),
+                label: const Text("Add", style: TextStyle(color: Colors.white)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.teal,
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                onPressed: widget.onAddFriend,
+              ),
+        onTap: widget.onTap,
       ),
-      onTap: widget.onTap,
     );
   }
 }

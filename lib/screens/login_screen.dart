@@ -26,8 +26,8 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       // Sign in using email and password
       UserCredential userCredential = await _auth.signInWithEmailAndPassword(
-        email: _emailController.text,
-        password: _passwordController.text,
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
       );
 
       // On success, navigate to the home screen
@@ -105,16 +105,16 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 child: _isLoading
                     ? const CircularProgressIndicator(
-                  color: Colors.white,
-                )
+                        color: Colors.white,
+                      )
                     : const Text(
-                  'Log in',
-                  style: TextStyle(
-                    fontSize: 16, // Font size
-                    fontWeight: FontWeight.w500, // Medium text weight
-                    color: Colors.white, // White text color for contrast
-                  ),
-                ),
+                        'Log in',
+                        style: TextStyle(
+                          fontSize: 16, // Font size
+                          fontWeight: FontWeight.w500, // Medium text weight
+                          color: Colors.white, // White text color for contrast
+                        ),
+                      ),
               ),
             ),
             const SizedBox(height: 20),

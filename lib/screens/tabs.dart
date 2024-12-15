@@ -28,7 +28,7 @@ class _TabsScreenState extends State<TabsScreen> {
 
   final List<String> titles = [
     'Home Page',
-    'Events List',
+    'My Events List',
     'Pledged Gifts',
   ];
 
