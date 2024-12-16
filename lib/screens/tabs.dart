@@ -1,9 +1,10 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:yarb/screens/event_list_screen.dart';
 import 'package:yarb/screens/home_screen.dart';
 import 'package:yarb/widgets/main_drawer.dart';
-import 'package:yarb/screens/pledged_gifts_screen.dart';
+import 'package:yarb/screens/gifts/pledged_gifts_screen.dart';
+
+import 'events/event_list_screen.dart';
 
 class TabsScreen extends StatefulWidget {
   const TabsScreen({super.key});

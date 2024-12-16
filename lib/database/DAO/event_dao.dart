@@ -77,4 +77,24 @@ class EventDAO {
       whereArgs: [event.firestoreId],
     );
   }
+
+  Future<int> getUserIdFromEventId(String eventFirestoreId) async {
+    final db = await DatabaseHelper().database;
+
+    if (eventFirestoreId.isEmpty) {
+      throw Exception('Event Firestore ID is empty');
+    }
+
+    var result = await db.query(
+      'events',
+      where: 'firestore_id = ?',
+      whereArgs: [eventFirestoreId],
+    );
+
+    if (result.isNotEmpty) {
+      return result.first['user_id'] as int;
+    }
+
+    throw Exception('User ID not found for Firestore Event ID: $eventFirestoreId');
+  }
 }

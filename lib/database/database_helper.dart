@@ -27,8 +27,6 @@ class DatabaseHelper {
     });
   }
 
-
-
   Future<void> _onCreate(Database db, int version) async {
     await db.execute('''
     CREATE TABLE users (
@@ -54,17 +52,23 @@ class DatabaseHelper {
   ''');
 
     await db.execute('''
-    CREATE TABLE gifts (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT,
-      description TEXT,
-      category TEXT,
-      price REAL,
-      status TEXT,
-      event_id INTEGER,
-      FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE
-    )
-  ''');
+  CREATE TABLE gifts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    description TEXT,
+    category TEXT,
+    price REAL,
+    status TEXT NOT NULL,
+    event_id INTEGER NOT NULL,
+    firestore_id TEXT UNIQUE NOT NULL,
+    pledged_by INTEGER,
+    pledged_to INTEGER,
+    FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE,
+    FOREIGN KEY (pledged_by) REFERENCES users(id) ON DELETE SET NULL,
+    FOREIGN KEY (pledged_to) REFERENCES users(id) ON DELETE SET NULL
+  )
+''');
+
 
     await db.execute('''
     CREATE TABLE friends (
@@ -76,5 +80,4 @@ class DatabaseHelper {
     )
   ''');
   }
-
 }

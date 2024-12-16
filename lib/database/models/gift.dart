@@ -6,6 +6,9 @@ class Gift {
   final double? price;
   final String status;
   final int eventId;
+  final String firestoreId;
+  final int? pledgedBy; // Foreign Key from 'users' table
+  final int? pledgedTo; // Foreign Key from 'users' table
 
   Gift({
     this.id,
@@ -15,9 +18,12 @@ class Gift {
     this.price,
     required this.status,
     required this.eventId,
+    required this.firestoreId,
+    this.pledgedBy,
+    this.pledgedTo,
   });
 
-  // Convert a Gift into a Map for SQL insertion
+  /// Convert a Gift into a Map for SQLite insertion
   Map<String, dynamic> toMap() {
     return {
       'id': id,
@@ -27,19 +33,25 @@ class Gift {
       'price': price,
       'status': status,
       'event_id': eventId,
+      'firestore_id': firestoreId,
+      'pledged_by': pledgedBy,
+      'pledged_to': pledgedTo,
     };
   }
 
-  // Create a Gift from a Map (used for fetching from SQLite)
+  /// Create a Gift from a Map (used for fetching from SQLite)
   factory Gift.fromMap(Map<String, dynamic> map) {
     return Gift(
       id: map['id'],
       name: map['name'],
       description: map['description'],
       category: map['category'],
-      price: map['price'],
+      price: map['price']?.toDouble(),
       status: map['status'],
       eventId: map['event_id'],
+      firestoreId: map['firestore_id'],
+      pledgedBy: map['pledged_by'],
+      pledgedTo: map['pledged_to'],
     );
   }
 }

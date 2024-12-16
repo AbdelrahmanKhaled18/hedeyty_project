@@ -5,8 +5,8 @@ import '../database/DAO/friend_dao.dart';
 import '../database/database_helper.dart';
 import '../database/models/friend.dart';
 import '../widgets/friend_item.dart';
-import 'event_creation.dart';
-import 'event_list_screen.dart';
+import 'events/event_creation.dart';
+import 'events/event_list_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});

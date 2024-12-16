@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
-import '../database/DAO/event_dao.dart';
-import '../database/models/event.dart';
+import '../../database/DAO/event_dao.dart';
+import '../../database/models/event.dart';
+import '../gifts/gift_list_screen.dart';
 import 'event_creation.dart';
 
 class EventListScreen extends StatefulWidget {
@@ -72,7 +73,11 @@ class _EventListScreenState extends State<EventListScreen> {
                 margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
                 elevation: 4,
                 child: InkWell(
-                  onTap: !isCurrentUser ? () => _showEventDetails(event) : null,
+                  onTap: () => _navigateToGiftList(
+                    event.id,
+                    event['name'],
+                    isCurrentUser,
+                  ),
                   child: ListTile(
                     contentPadding: const EdgeInsets.all(16),
                     leading: CircleAvatar(
@@ -152,9 +157,7 @@ class _EventListScreenState extends State<EventListScreen> {
                   MaterialPageRoute(
                     builder: (context) => const EventCreationPage(),
                   ),
-                ).then((_) {
-                  setState(() => _fetchEvents());
-                });
+                ).then((_) => _fetchEvents());
               },
               child: const Icon(Icons.add),
             )
@@ -164,10 +167,13 @@ class _EventListScreenState extends State<EventListScreen> {
 
   Future<void> _deleteEvent(String eventId) async {
     try {
+      // Delete from Firestore
       await FirebaseFirestore.instance
           .collection('events')
           .doc(eventId)
           .delete();
+
+      // Delete from Local SQLite Database
       final dbEvents = await _eventDAO.getEvents();
       final localEvent = dbEvents.firstWhere(
         (event) => event.firestoreId == eventId,
@@ -204,21 +210,12 @@ class _EventListScreenState extends State<EventListScreen> {
           content: SingleChildScrollView(
             child: Column(
               children: [
-                TextField(
-                  controller: nameController,
-                  decoration: const InputDecoration(labelText: 'Name'),
-                ),
-                TextField(
-                  controller: locationController,
-                  decoration: const InputDecoration(labelText: 'Location'),
-                ),
-                TextField(
-                  controller: dateController,
+                _buildTextField('Name', nameController),
+                _buildTextField('Location', locationController),
+                _buildTextField(
+                  'Date',
+                  dateController,
                   readOnly: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Date',
-                    suffixIcon: Icon(Icons.calendar_today),
-                  ),
                   onTap: () async {
                     DateTime? pickedDate = await showDatePicker(
                       context: context,
@@ -227,16 +224,15 @@ class _EventListScreenState extends State<EventListScreen> {
                       lastDate: DateTime(2100),
                     );
                     if (pickedDate != null) {
-                      String formattedDate =
+                      dateController.text =
                           DateFormat('yyyy-MM-dd').format(pickedDate);
-                      dateController.text = formattedDate;
                     }
                   },
                 ),
-                TextField(
-                  controller: descriptionController,
+                _buildTextField(
+                  'Description',
+                  descriptionController,
                   maxLines: 3,
-                  decoration: const InputDecoration(labelText: 'Description'),
                 ),
               ],
             ),
@@ -273,6 +269,7 @@ class _EventListScreenState extends State<EventListScreen> {
     String description,
   ) async {
     try {
+      // Update in Firestore
       await FirebaseFirestore.instance
           .collection('events')
           .doc(eventId)
@@ -283,6 +280,7 @@ class _EventListScreenState extends State<EventListScreen> {
         'description': description,
       });
 
+      // Update in Local SQLite Database
       final dbEvents = await _eventDAO.getEvents();
       final localEvent = dbEvents.firstWhere(
         (event) => event.firestoreId == eventId,
@@ -311,7 +309,28 @@ class _EventListScreenState extends State<EventListScreen> {
     }
   }
 
-  void _showEventDetails(QueryDocumentSnapshot event) {
-    // Add detailed view navigation if needed
+  void _navigateToGiftList(String eventId, String eventName, bool canEdit) {
+    print(widget.friendId);
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => GiftListScreen(
+          eventId: eventId,
+          eventName: eventName,
+          canEdit: canEdit,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTextField(String label, TextEditingController controller,
+      {bool readOnly = false, int maxLines = 1, VoidCallback? onTap}) {
+    return TextField(
+      controller: controller,
+      readOnly: readOnly,
+      maxLines: maxLines,
+      onTap: onTap,
+      decoration: InputDecoration(labelText: label),
+    );
   }
 }
