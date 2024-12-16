@@ -1,7 +1,7 @@
 import 'package:animated_splash_screen/animated_splash_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
-import 'package:yarb/screens/start_screen.dart';
+import 'package:yarb/screens/auth/start_screen.dart';
 
 class SplashScreen extends StatelessWidget {
   const SplashScreen({super.key});

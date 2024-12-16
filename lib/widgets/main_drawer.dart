@@ -1,7 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
-import '../screens/login_screen.dart';
+import '../screens/auth/login_screen.dart';
 import '../screens/profile_screen.dart';
 
 class MainDrawer extends StatelessWidget {
@@ -20,7 +20,9 @@ class MainDrawer extends StatelessWidget {
             accountEmail: Text(user?.email ?? 'Not logged in'),
             currentAccountPicture: CircleAvatar(
               backgroundColor: Colors.white,
-              child: user?.photoURL != null ? null : Text(user?.displayName?.substring(0, 1) ?? 'G'),
+              child: user?.photoURL != null
+                  ? null
+                  : Text(user?.displayName?.substring(0, 1) ?? 'G'),
             ),
           ),
           ListTile(

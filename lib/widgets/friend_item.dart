@@ -82,38 +82,45 @@ class _FriendListItemState extends State<FriendListItem> {
           padding: const EdgeInsets.only(top: 8),
           child: _isLoading
               ? const Text(
-                  'Loading events...',
-                  style: TextStyle(fontSize: 14, color: Colors.grey),
-                )
+            'Loading events...',
+            style: TextStyle(fontSize: 14, color: Colors.grey),
+          )
               : Row(
-                  children: [
-                    const Icon(Icons.event, color: Colors.grey, size: 18),
-                    const SizedBox(width: 8),
-                    Text(
-                      upcomingEventsCount > 0
-                          ? 'Upcoming Events: $upcomingEventsCount'
-                          : 'No Upcoming Events',
-                      style: const TextStyle(fontSize: 14, color: Colors.grey),
-                    ),
-                  ],
+            children: [
+              const Icon(Icons.event, color: Colors.grey, size: 18),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  upcomingEventsCount > 0
+                      ? 'Upcoming Events: $upcomingEventsCount'
+                      : 'No Upcoming Events',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey,
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
+              ),
+            ],
+          ),
         ),
         trailing: widget.isFriend
             ? null
             : ElevatedButton.icon(
-                icon:
-                    const Icon(Icons.person_add, color: Colors.white, size: 18),
-                label: const Text("Add", style: TextStyle(color: Colors.white)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.teal,
-                  padding:
-                      const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                onPressed: widget.onAddFriend,
-              ),
+          icon: const Icon(Icons.person_add, color: Colors.white, size: 18),
+          label: const Text(
+            "Add",
+            style: TextStyle(color: Colors.white),
+          ),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.teal,
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+          onPressed: widget.onAddFriend,
+        ),
         onTap: widget.onTap,
       ),
     );

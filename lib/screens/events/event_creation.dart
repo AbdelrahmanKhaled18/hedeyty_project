@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
-import '../database/models/event.dart';
-import '../database/DAO/event_dao.dart';
-import '../database/database_helper.dart';
+import '../../database/models/event.dart';
+import '../../database/DAO/event_dao.dart';
+import '../../database/database_helper.dart';
 
 class EventCreationPage extends StatefulWidget {
   const EventCreationPage({super.key});
