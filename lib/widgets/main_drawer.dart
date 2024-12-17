@@ -12,22 +12,73 @@ class MainDrawer extends StatelessWidget {
     final user = FirebaseAuth.instance.currentUser;
 
     return Drawer(
-      child: ListView(
-        padding: EdgeInsets.zero,
+      backgroundColor: Colors.white,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          UserAccountsDrawerHeader(
-            accountName: Text(user?.displayName ?? 'Guest'),
-            accountEmail: Text(user?.email ?? 'Not logged in'),
-            currentAccountPicture: CircleAvatar(
-              backgroundColor: Colors.white,
-              child: user?.photoURL != null
-                  ? null
-                  : Text(user?.displayName?.substring(0, 1) ?? 'G'),
+          // User Info Header
+          DrawerHeader(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Colors.teal.shade800, Colors.teal.shade400],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                CircleAvatar(
+                  radius: 40,
+                  backgroundColor: Colors.white,
+                  child: user?.photoURL != null
+                      ? ClipOval(
+                    child: Image.network(
+                      user!.photoURL!,
+                      width: 80,
+                      height: 80,
+                      fit: BoxFit.cover,
+                    ),
+                  )
+                      : Text(
+                    user?.displayName?.substring(0, 1) ?? 'G',
+                    style: const TextStyle(
+                      fontSize: 40,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.teal,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 20),
+                Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      user?.displayName ?? 'Guest',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      user?.email ?? 'Not logged in',
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
-          ListTile(
-            leading: const Icon(Icons.settings),
-            title: const Text('Profile'),
+
+          // Menu Options
+          _buildDrawerItem(
+            icon: Icons.settings,
+            title: 'Profile',
             onTap: () {
               Navigator.pop(context);
               Navigator.push(
@@ -36,9 +87,11 @@ class MainDrawer extends StatelessWidget {
               );
             },
           ),
-          ListTile(
-            leading: const Icon(Icons.exit_to_app),
-            title: const Text('Logout'),
+          const Divider(height: 1, thickness: 1, color: Colors.grey),
+
+          _buildDrawerItem(
+            icon: Icons.exit_to_app,
+            title: 'Logout',
             onTap: () async {
               await FirebaseAuth.instance.signOut();
               Navigator.pushReplacement(
@@ -49,6 +102,28 @@ class MainDrawer extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildDrawerItem({
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+  }) {
+    return ListTile(
+      leading: Icon(
+        icon,
+        color: Colors.teal.shade800,
+      ),
+      title: Text(
+        title,
+        style: TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+          color: Colors.grey.shade800,
+        ),
+      ),
+      onTap: onTap,
     );
   }
 }
