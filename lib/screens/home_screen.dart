@@ -1,12 +1,12 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+
 import '../database/DAO/friend_dao.dart';
 import '../database/database_helper.dart';
 import '../database/models/friend.dart';
 import '../widgets/friend_item.dart';
 import 'events/event_creation.dart';
-import 'events/event_list_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -176,93 +176,83 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const EventCreationPage(),
-                    ),
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 15),
-                  backgroundColor: Colors.teal,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                ),
-                child: const Text(
-                  'Create Your Own Event/List',
-                  style: TextStyle(fontSize: 16, color: Colors.white),
-                ),
+      body: Column(
+        children: [
+          TextField(
+            controller: _searchController,
+            onChanged: searchUsers,
+            focusNode: _searchFocusNode,
+            decoration: InputDecoration(
+              filled: true,
+              fillColor: Colors.grey.shade100,
+              hintText: 'Search for friends...',
+              prefixIcon: const Icon(Icons.search),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(30),
+                borderSide: BorderSide.none,
               ),
             ),
-            const SizedBox(height: 20),
-            TextField(
-              controller: _searchController,
-              focusNode: _searchFocusNode,
-              decoration: InputDecoration(
-                hintText: 'Search for friends or gift lists',
-                prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(30),
-                  borderSide: const BorderSide(color: Colors.grey),
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-            _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : Expanded(
-                    child: _searchController.text.isEmpty && friendsList.isEmpty
-                        ? const Center(
-                            child: Text(
-                              'No friends yet',
-                              style:
-                                  TextStyle(fontSize: 18, color: Colors.grey),
+          ),
+          const SizedBox(height: 16),
+
+          // Friends List
+          _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : Expanded(
+                  child: _searchController.text.isEmpty && friendsList.isEmpty
+                      ? const Center(
+                          child: Text(
+                            'No friends found',
+                            style: TextStyle(
+                              fontSize: 18,
+                              color: Colors.grey,
                             ),
-                          )
-                        : ListView.builder(
-                            itemCount: _searchController.text.isEmpty
-                                ? friendsList.length
-                                : searchResults.length,
-                            itemBuilder: (context, index) {
-                              var user = _searchController.text.isEmpty
-                                  ? friendsList[index]
-                                  : searchResults[index];
-                              bool isFriend = friendsList
-                                  .any((friend) => friend['id'] == user['id']);
-                              return FriendListItem(
-                                friendName: user['name'],
-                                friendFirestoreId: user['id'],
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => EventListScreen(
-                                          friendId: user['id'],
-                                          friendName: user['name']),
-                                    ),
-                                  );
-                                },
-                                onAddFriend: isFriend
-                                    ? null
-                                    : () => _addFriend(user['id']),
-                                isFriend: isFriend,
-                              );
-                            },
                           ),
-                  ),
-          ],
-        ),
+                        )
+                      : ListView.builder(
+                          itemCount: _searchController.text.isEmpty
+                              ? friendsList.length
+                              : searchResults.length,
+                          itemBuilder: (context, index) {
+                            var user = _searchController.text.isEmpty
+                                ? friendsList[index]
+                                : searchResults[index];
+                            bool isFriend = friendsList
+                                .any((friend) => friend['id'] == user['id']);
+
+                            return FriendListItem(
+                              friendName: user['name'],
+                              friendFirestoreId: user['id'],
+                              onTap: () {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                        'Navigating to ${user['name']}\'s events'),
+                                  ),
+                                );
+                              },
+                              onAddFriend: isFriend
+                                  ? null
+                                  : () => _addFriend(user['id']),
+                              isFriend: isFriend,
+                            );
+                          },
+                        ),
+                ),
+        ],
+      ),
+
+      // Floating Action Button
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const EventCreationPage()),
+          );
+        },
+        label: const Text('Create Event'),
+        icon: const Icon(Icons.event),
+        backgroundColor: Colors.teal.shade800,
       ),
     );
   }

@@ -1,4 +1,3 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'home_screen.dart';
 import 'events/event_list_screen.dart';
@@ -17,14 +16,14 @@ class TabsScreen extends StatefulWidget {
 class _TabsScreenState extends State<TabsScreen> {
   int _selectedPageIndex = 0;
 
-  final Map<int, Widget> pages = {
-    0: const HomeScreen(),
-    1: const EventListScreen(),
-    2: const PledgedGiftsScreen(),
-  };
+  final List<Widget> pages = [
+    const HomeScreen(),
+    const EventListScreen(),
+    const PledgedGiftsScreen(),
+  ];
 
   final List<String> titles = [
-    'Home Page',
+    'Home',
     'My Events List',
     'Pledged Gifts',
   ];
@@ -45,24 +44,40 @@ class _TabsScreenState extends State<TabsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(titles[_selectedPageIndex]),
+        title: Text(
+          titles[_selectedPageIndex],
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        centerTitle: true,
+        elevation: 5,
+        backgroundColor: Colors.teal.shade800,
       ),
       drawer: const MainDrawer(),
-      body: pages[_selectedPageIndex] ?? const SizedBox(),
+      body: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 300),
+        switchInCurve: Curves.easeIn,
+        switchOutCurve: Curves.easeOut,
+        child: pages[_selectedPageIndex],
+      ),
       bottomNavigationBar: BottomNavigationBar(
-        onTap: _selectPage,
         currentIndex: _selectedPageIndex,
+        onTap: _selectPage,
+        selectedItemColor: Colors.teal.shade800,
+        unselectedItemColor: Colors.grey,
+        backgroundColor: Colors.white,
+        elevation: 10,
+        type: BottomNavigationBarType.fixed,
         items: const [
           BottomNavigationBarItem(
-            icon: Icon(Icons.home),
+            icon: Icon(Icons.home_outlined),
             label: 'Home',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.event),
-            label: 'Events List',
+            icon: Icon(Icons.event_outlined),
+            label: 'Events',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.card_giftcard),
+            icon: Icon(Icons.card_giftcard_outlined),
             label: 'Pledged Gifts',
           ),
         ],

@@ -7,6 +7,8 @@ import 'package:yarb/screens/tabs.dart';
 import '../../database/database_helper.dart';
 
 class ProfileScreen extends StatefulWidget {
+  const ProfileScreen({super.key});
+
   @override
   State<StatefulWidget> createState() => ProfileScreenState();
 }
@@ -94,13 +96,11 @@ class ProfileScreenState extends State<ProfileScreen> {
         'phone': phoneController.text.trim(),
       };
 
-      // Update Firestore
       await FirebaseFirestore.instance
           .collection('users')
           .doc(user.uid)
           .update(updatedData);
 
-      // Update Local Database (SQLite)
       final db = await DatabaseHelper().database;
       await db.update(
         'users',
@@ -149,9 +149,10 @@ class ProfileScreenState extends State<ProfileScreen> {
       appBar: AppBar(
         title: const Text("Profile"),
         centerTitle: true,
+        backgroundColor: Colors.teal.shade800,
         actions: [
           IconButton(
-            icon: Icon(isEditing ? Icons.check : Icons.edit),
+            icon: Icon(isEditing ? Icons.check : Icons.edit, size: 28),
             onPressed: () async {
               if (isEditing) {
                 await _saveUserData();
@@ -165,103 +166,123 @@ class ProfileScreenState extends State<ProfileScreen> {
       ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
-          : Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: ListView(
-          children: [
-            _buildEditableField(
-              "Full Name",
-              "Enter your name",
-              nameController,
-              isEditing,
-            ),
-            const SizedBox(height: 16),
-            _buildEditableField(
-              "Email",
-              "Enter your email",
-              emailController,
-              isEditing,
-              keyboardType: TextInputType.emailAddress,
-            ),
-            const SizedBox(height: 16),
-            _buildEditableField(
-              "Phone Number",
-              "Enter your phone number",
-              phoneController,
-              isEditing,
-              keyboardType: TextInputType.phone,
-            ),
-            const SizedBox(height: 16),
-            _buildEditableField(
-              "New Password",
-              "Enter new password",
-              passwordController,
-              isEditing,
-              obscureText: true,
-            ),
-            const SizedBox(height: 32),
-            _buildOptionTile(
-              icon: Icons.event,
-              title: "My Events",
-              subtitle: "View and manage your created events",
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) =>
-                    const TabsScreen(initialPageIndex: 1),
+          : SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Profile Header
+                  Center(
+                    child: CircleAvatar(
+                      radius: 60,
+                      backgroundColor: Colors.teal.shade100,
+                      child: const Icon(
+                        Icons.person,
+                        size: 60,
+                        color: Colors.teal,
+                      ),
+                    ),
                   ),
-                );
-              },
-            ),
-            _buildOptionTile(
-              icon: Icons.favorite,
-              title: "My Pledged Gifts",
-              subtitle: "See gifts you pledged for others",
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) =>
-                    const TabsScreen(initialPageIndex: 2),
+                  const SizedBox(height: 20),
+
+                  _buildEditableField(
+                    "Full Name",
+                    "Enter your name",
+                    nameController,
+                    isEditing,
+                    icon: Icons.person_outline,
                   ),
-                );
-              },
+                  const SizedBox(height: 20),
+                  _buildEditableField(
+                    "Email",
+                    "Enter your email",
+                    emailController,
+                    isEditing,
+                    icon: Icons.email_outlined,
+                    keyboardType: TextInputType.emailAddress,
+                  ),
+                  const SizedBox(height: 20),
+                  _buildEditableField(
+                    "Phone Number",
+                    "Enter your phone number",
+                    phoneController,
+                    isEditing,
+                    icon: Icons.phone_outlined,
+                    keyboardType: TextInputType.phone,
+                  ),
+                  const SizedBox(height: 20),
+                  _buildEditableField(
+                    "New Password",
+                    "Enter new password",
+                    passwordController,
+                    isEditing,
+                    icon: Icons.lock_outline,
+                    obscureText: true,
+                  ),
+                  const SizedBox(height: 40),
+
+                  // Action Buttons
+                  _buildOptionTile(
+                    icon: Icons.event,
+                    title: "My Events",
+                    subtitle: "View and manage your created events",
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              const TabsScreen(initialPageIndex: 1),
+                        ),
+                      );
+                    },
+                  ),
+                  _buildOptionTile(
+                    icon: Icons.favorite,
+                    title: "My Pledged Gifts",
+                    subtitle: "See gifts you pledged for others",
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              const TabsScreen(initialPageIndex: 2),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
             ),
-          ],
-        ),
-      ),
     );
   }
 
   Widget _buildEditableField(
-      String label,
-      String hint,
-      TextEditingController controller,
-      bool isEditable, {
-        TextInputType keyboardType = TextInputType.text,
-        bool obscureText = false,
-      }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+    String label,
+    String hint,
+    TextEditingController controller,
+    bool isEditable, {
+    required IconData icon,
+    TextInputType keyboardType = TextInputType.text,
+    bool obscureText = false,
+  }) {
+    return TextField(
+      controller: controller,
+      enabled: isEditable,
+      obscureText: obscureText,
+      keyboardType: keyboardType,
+      decoration: InputDecoration(
+        prefixIcon: Icon(icon, color: Colors.teal.shade800),
+        labelText: label,
+        hintText: hint,
+        filled: true,
+        fillColor: isEditable ? Colors.grey.shade100 : Colors.grey.shade200,
+        contentPadding:
+            const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(30),
+          borderSide: BorderSide.none,
         ),
-        TextField(
-          controller: controller,
-          enabled: isEditable,
-          keyboardType: keyboardType,
-          obscureText: obscureText,
-          decoration: InputDecoration(
-            hintText: hint,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
-        ),
-      ],
+      ),
     );
   }
 
@@ -271,11 +292,32 @@ class ProfileScreenState extends State<ProfileScreen> {
     required String subtitle,
     required VoidCallback onTap,
   }) {
-    return ListTile(
-      leading: Icon(icon),
-      title: Text(title),
-      subtitle: Text(subtitle),
-      onTap: onTap,
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 10),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(15),
+      ),
+      elevation: 3,
+      child: ListTile(
+        leading: Icon(
+          icon,
+          color: Colors.teal.shade800,
+          size: 30,
+        ),
+        title: Text(
+          title,
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        subtitle: Text(
+          subtitle,
+          style: const TextStyle(fontSize: 14, color: Colors.grey),
+        ),
+        trailing: const Icon(Icons.arrow_forward_ios, size: 20),
+        onTap: onTap,
+      ),
     );
   }
 }
