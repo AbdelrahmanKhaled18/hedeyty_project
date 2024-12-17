@@ -1,3 +1,6 @@
+import 'dart:convert';
+
+import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -30,26 +33,32 @@ class _SignUpScreenState extends State<SignUpScreen> {
     });
 
     try {
-      UserCredential userCredential =
-          await _auth.createUserWithEmailAndPassword(
+      // Create user with Firebase Auth
+      UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
 
       userCredential.user?.updateDisplayName(_nameController.text.trim());
 
+      // Hash password securely using SHA-256
+      final hashedPassword = _hashPassword(_passwordController.text.trim());
+
+      // Save user data to Firestore
       await _saveUserDataToFirestore(userCredential.user);
 
+      // Create local user model
       UserModel localUser = UserModel(
         name: _nameController.text.trim(),
         email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
+        password: hashedPassword,
         firestoreId: userCredential.user!.uid,
       );
 
-      // Save user data locally
+      // Save user data locally using SQLite
       await UserDAO().insertUser(localUser);
 
+      // Navigate to the next screen
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
@@ -67,13 +76,24 @@ class _SignUpScreenState extends State<SignUpScreen> {
     }
   }
 
+// Function to hash password using SHA-256
+  String _hashPassword(String password) {
+    final bytes = utf8.encode(password);  // Convert password to UTF-8 bytes
+    final digest = sha256.convert(bytes); // Generate SHA-256 hash
+    return digest.toString();             // Convert hash to string
+  }
+
   Future<void> _saveUserDataToFirestore(User? user) async {
     if (user == null) return;
+
+    // Hash the password before saving
+    final hashedPassword = _hashPassword(_passwordController.text.trim());
 
     await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
       'uid': user.uid,
       'name': _nameController.text.trim(),
       'email': _emailController.text.trim(),
+      'password': hashedPassword,  // Store the hashed password securely
     });
   }
 
