@@ -79,6 +79,8 @@ flutter:
       - assets/gift.webp
       - assets/Gift_Box_Explode.gif
       - assets/avatar.jpg
+      - assets/undraw_happy-birthday_lmk0.png
+      - assets/signup.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

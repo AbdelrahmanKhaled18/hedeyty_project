@@ -1,5 +1,4 @@
 import 'dart:convert';
-
 import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -33,21 +32,18 @@ class _SignUpScreenState extends State<SignUpScreen> {
     });
 
     try {
-      // Create user with Firebase Auth
-      UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
+      UserCredential userCredential =
+          await _auth.createUserWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
 
       userCredential.user?.updateDisplayName(_nameController.text.trim());
 
-      // Hash password securely using SHA-256
       final hashedPassword = _hashPassword(_passwordController.text.trim());
 
-      // Save user data to Firestore
-      await _saveUserDataToFirestore(userCredential.user);
+      await _saveUserDataToFirestore(userCredential.user, hashedPassword);
 
-      // Create local user model
       UserModel localUser = UserModel(
         name: _nameController.text.trim(),
         email: _emailController.text.trim(),
@@ -55,20 +51,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
         firestoreId: userCredential.user!.uid,
       );
 
-      // Save user data locally using SQLite
       await UserDAO().insertUser(localUser);
 
-      // Navigate to the next screen
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(
-          builder: (context) => const TabsScreen(),
-        ),
+        _customPageRoute(const TabsScreen()),
       );
     } on FirebaseAuthException catch (e) {
       _showErrorSnackbar(e.message ?? 'Sign-up failed');
-    } catch (dbError) {
-      _showErrorSnackbar('Failed to save data locally');
     } finally {
       setState(() {
         _isLoading = false;
@@ -76,24 +66,21 @@ class _SignUpScreenState extends State<SignUpScreen> {
     }
   }
 
-// Function to hash password using SHA-256
   String _hashPassword(String password) {
-    final bytes = utf8.encode(password);  // Convert password to UTF-8 bytes
-    final digest = sha256.convert(bytes); // Generate SHA-256 hash
-    return digest.toString();             // Convert hash to string
+    final bytes = utf8.encode(password);
+    final digest = sha256.convert(bytes);
+    return digest.toString();
   }
 
-  Future<void> _saveUserDataToFirestore(User? user) async {
+  Future<void> _saveUserDataToFirestore(
+      User? user, String hashedPassword) async {
     if (user == null) return;
-
-    // Hash the password before saving
-    final hashedPassword = _hashPassword(_passwordController.text.trim());
 
     await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
       'uid': user.uid,
       'name': _nameController.text.trim(),
       'email': _emailController.text.trim(),
-      'password': hashedPassword,  // Store the hashed password securely
+      'password': hashedPassword,
     });
   }
 
@@ -106,114 +93,164 @@ class _SignUpScreenState extends State<SignUpScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Sign Up'),
-      ),
       body: Padding(
-        padding: const EdgeInsets.all(20.0),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 60),
         child: SingleChildScrollView(
           child: Form(
             key: _formKey,
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(height: 20),
-                TextFormField(
-                  controller: _nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Name',
-                    border: OutlineInputBorder(),
+                AnimatedOpacity(
+                  opacity: 1.0,
+                  duration: const Duration(seconds: 2),
+                  child: Image.asset(
+                    'assets/signup.png',
+                    height: 250,
                   ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter your name';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 20),
-                TextFormField(
-                  keyboardType: TextInputType.emailAddress,
-                  controller: _emailController,
-                  decoration: const InputDecoration(
-                    labelText: 'Email',
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter your email';
-                    }
-                    if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
-                      return 'Please enter a valid email address';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 20),
-                TextFormField(
-                  controller: _passwordController,
-                  obscureText: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Password',
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter your password';
-                    }
-                    if (value.length < 6) {
-                      return 'Password must be at least 6 characters long';
-                    }
-                    return null;
-                  },
                 ),
                 const SizedBox(height: 30),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _isLoading ? null : _signUp,
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 15),
-                      backgroundColor: Colors.teal,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
+                Text(
+                  'Create Your Account',
+                  style: Theme.of(context).textTheme.headlineSmall!.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.teal.shade800,
                       ),
-                      elevation: 2,
-                    ),
-                    child: _isLoading
-                        ? const CircularProgressIndicator(
-                            color: Colors.white,
-                          )
-                        : const Text(
-                            'Sign up',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
+                ),
+                const SizedBox(height: 20),
+                _buildTextField(
+                  controller: _nameController,
+                  labelText: 'Full Name',
+                  hintText: 'Enter your name',
+                  icon: Icons.person_outline,
+                  isObscured: false,
+                ),
+                const SizedBox(height: 20),
+                _buildTextField(
+                  controller: _emailController,
+                  labelText: 'Email',
+                  hintText: 'Enter your email',
+                  icon: Icons.email_outlined,
+                  isObscured: false,
+                ),
+                const SizedBox(height: 20),
+                _buildTextField(
+                  controller: _passwordController,
+                  labelText: 'Password',
+                  hintText: 'Enter your password',
+                  icon: Icons.lock_outline,
+                  isObscured: true,
+                ),
+                const SizedBox(height: 30),
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 800),
+                  curve: Curves.easeInOut,
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: _isLoading ? null : _signUp,
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 15),
+                        backgroundColor: Colors.teal.shade800,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(25),
+                        ),
+                        elevation: 5,
+                      ),
+                      child: _isLoading
+                          ? const CircularProgressIndicator(
                               color: Colors.white,
+                            )
+                          : const Text(
+                              'Sign Up',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
                             ),
-                          ),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 20),
-                Center(
-                  child: GestureDetector(
-                    onTap: () => Navigator.pop(context),
-                    child: const Text(
-                      "Already have an account? Log In",
-                      style: TextStyle(
-                        color: Colors.teal,
-                        fontSize: 16,
-                        decoration: TextDecoration.underline,
-                      ),
+                GestureDetector(
+                  onTap: () {
+                    Navigator.pop(context);
+                  },
+                  child: const Text(
+                    "Already have an account? Log In",
+                    style: TextStyle(
+                      color: Colors.teal,
+                      fontSize: 16,
+                      decoration: TextDecoration.underline,
                     ),
                   ),
                 ),
+                const SizedBox(height: 20),
               ],
             ),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String labelText,
+    required String hintText,
+    required IconData icon,
+    required bool isObscured,
+  }) {
+    return TextFormField(
+      controller: controller,
+      obscureText: isObscured,
+      decoration: InputDecoration(
+        labelText: labelText,
+        hintText: hintText,
+        prefixIcon: Icon(icon, color: Colors.teal.shade800),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(25),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(25),
+          borderSide: BorderSide(
+            color: Colors.teal.shade800,
+            width: 2,
+          ),
+        ),
+      ),
+      validator: (value) {
+        if (value == null || value.isEmpty) {
+          return 'Please enter $labelText';
+        }
+        if (labelText == 'Email' &&
+            !RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
+          return 'Please enter a valid email';
+        }
+        if (labelText == 'Password' && value.length < 6) {
+          return 'Password must be at least 6 characters';
+        }
+        return null;
+      },
+    );
+  }
+
+  PageRouteBuilder _customPageRoute(Widget page) {
+    return PageRouteBuilder(
+      pageBuilder: (context, animation, secondaryAnimation) => page,
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        const begin = Offset(1.0, 0.0);
+        const end = Offset.zero;
+        const curve = Curves.easeInOut;
+
+        var tween = Tween(begin: begin, end: end).chain(
+          CurveTween(curve: curve),
+        );
+
+        var offsetAnimation = animation.drive(tween);
+        return SlideTransition(position: offsetAnimation, child: child);
+      },
     );
   }
 }
