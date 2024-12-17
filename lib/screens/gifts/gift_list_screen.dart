@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../database/database_helper.dart';
 import 'gift_creation.dart';
 import 'gift_details_edit.dart';
 
@@ -37,7 +38,17 @@ class _GiftListScreenState extends State<GiftListScreen> {
 
   Future<void> _deleteGift(String giftId) async {
     try {
+      // Delete from Firestore
       await FirebaseFirestore.instance.collection('gifts').doc(giftId).delete();
+
+      // Delete from local SQLite database
+      final db = await DatabaseHelper().database;
+      await db.delete(
+        'gifts',
+        where: 'firestore_id = ?',
+        whereArgs: [giftId],
+      );
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Gift deleted successfully')),
       );
