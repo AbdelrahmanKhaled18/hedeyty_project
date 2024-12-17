@@ -92,7 +92,11 @@ class _GiftCreationScreenState extends State<GiftCreationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Add Gift")),
+      appBar: AppBar(
+        title: const Text("Add Gift"),
+        centerTitle: true,
+        backgroundColor: Colors.teal,
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: SingleChildScrollView(
@@ -101,30 +105,39 @@ class _GiftCreationScreenState extends State<GiftCreationScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildTextField(
+                _buildEnhancedTextField(
                   controller: _nameController,
                   label: "Gift Name",
-                  validator: (value) =>
-                      value == null || value.isEmpty ? "Enter gift name" : null,
-                ),
-                const SizedBox(height: 16),
-                _buildTextField(
-                  controller: _categoryController,
-                  label: "Category",
+                  hintText: "Enter the gift name",
+                  icon: Icons.card_giftcard,
                   validator: (value) => value == null || value.isEmpty
-                      ? "Enter a category"
+                      ? "Please enter the gift name"
                       : null,
                 ),
                 const SizedBox(height: 16),
-                _buildTextField(
+                _buildEnhancedTextField(
+                  controller: _categoryController,
+                  label: "Category",
+                  hintText: "Enter the gift category",
+                  icon: Icons.category_outlined,
+                  validator: (value) => value == null || value.isEmpty
+                      ? "Please enter a category"
+                      : null,
+                ),
+                const SizedBox(height: 16),
+                _buildEnhancedTextField(
                   controller: _descriptionController,
                   label: "Description (Optional)",
+                  hintText: "Describe the gift (optional)",
+                  icon: Icons.description_outlined,
                   maxLines: 4,
                 ),
                 const SizedBox(height: 16),
-                _buildTextField(
+                _buildEnhancedTextField(
                   controller: _priceController,
                   label: "Price (Optional)",
+                  hintText: "Enter the price",
+                  icon: Icons.attach_money_outlined,
                   keyboardType: TextInputType.number,
                 ),
                 const SizedBox(height: 24),
@@ -141,8 +154,9 @@ class _GiftCreationScreenState extends State<GiftCreationScreen> {
                     ),
                     child: _isLoading
                         ? const CircularProgressIndicator(
-                            valueColor:
-                                AlwaysStoppedAnimation<Color>(Colors.white),
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.white,
+                            ),
                           )
                         : const Text(
                             'Add Gift',
@@ -162,9 +176,11 @@ class _GiftCreationScreenState extends State<GiftCreationScreen> {
     );
   }
 
-  Widget _buildTextField({
+  Widget _buildEnhancedTextField({
     required TextEditingController controller,
     required String label,
+    required String hintText,
+    required IconData icon,
     String? Function(String?)? validator,
     TextInputType keyboardType = TextInputType.text,
     int maxLines = 1,
@@ -175,7 +191,22 @@ class _GiftCreationScreenState extends State<GiftCreationScreen> {
       maxLines: maxLines,
       decoration: InputDecoration(
         labelText: label,
-        border: const OutlineInputBorder(),
+        hintText: hintText,
+        prefixIcon: Icon(icon, color: Colors.teal),
+        filled: true,
+        fillColor: Colors.grey.shade100,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(30),
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(30),
+          borderSide: const BorderSide(color: Colors.teal, width: 2),
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          vertical: 16,
+          horizontal: 20,
+        ),
       ),
       validator: validator,
     );
