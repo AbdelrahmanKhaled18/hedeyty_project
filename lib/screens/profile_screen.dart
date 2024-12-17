@@ -1,9 +1,10 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:yarb/screens/events/event_list_screen.dart';
+import 'package:crypto/crypto.dart';
+import 'package:yarb/screens/tabs.dart';
 import '../../database/database_helper.dart';
-import 'gifts/pledged_gifts_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   @override
@@ -14,7 +15,8 @@ class ProfileScreenState extends State<ProfileScreen> {
   final TextEditingController nameController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController phoneController = TextEditingController();
-  final _auth = FirebaseAuth.instance;
+  final TextEditingController passwordController = TextEditingController();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   bool isEditing = false;
   bool isLoading = true;
@@ -62,21 +64,19 @@ class ProfileScreenState extends State<ProfileScreen> {
       whereArgs: [userId],
     );
 
+    final updatedData = {
+      'firestore_id': userId,
+      'name': data['name'],
+      'email': data['email'],
+      'phone': data['phone'],
+    };
+
     if (existing.isEmpty) {
-      await db.insert('users', {
-        'firestore_id': userId,
-        'name': data['name'],
-        'email': data['email'],
-        'phone': data['phone'],
-      });
+      await db.insert('users', updatedData);
     } else {
       await db.update(
         'users',
-        {
-          'name': data['name'],
-          'email': data['email'],
-          'phone': data['phone'],
-        },
+        updatedData,
         where: 'firestore_id = ?',
         whereArgs: [userId],
       );
@@ -89,16 +89,18 @@ class ProfileScreenState extends State<ProfileScreen> {
       if (user == null) return;
 
       final updatedData = {
-        'name': nameController.text,
-        'email': emailController.text,
-        'phone': phoneController.text,
+        'name': nameController.text.trim(),
+        'email': emailController.text.trim(),
+        'phone': phoneController.text.trim(),
       };
 
+      // Update Firestore
       await FirebaseFirestore.instance
           .collection('users')
           .doc(user.uid)
           .update(updatedData);
 
+      // Update Local Database (SQLite)
       final db = await DatabaseHelper().database;
       await db.update(
         'users',
@@ -107,10 +109,32 @@ class ProfileScreenState extends State<ProfileScreen> {
         whereArgs: [user.uid],
       );
 
+      if (passwordController.text.isNotEmpty) {
+        final hashedPassword = _hashPassword(passwordController.text.trim());
+
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .update({'password': hashedPassword});
+
+        await db.update(
+          'users',
+          {'password': hashedPassword},
+          where: 'firestore_id = ?',
+          whereArgs: [user.uid],
+        );
+      }
+
       _showSnackBar("Profile updated successfully!");
     } catch (e) {
       _showSnackBar("Failed to update profile: $e");
     }
+  }
+
+  String _hashPassword(String password) {
+    final bytes = utf8.encode(password);
+    final digest = sha256.convert(bytes);
+    return digest.toString();
   }
 
   void _showSnackBar(String message) {
@@ -142,71 +166,82 @@ class ProfileScreenState extends State<ProfileScreen> {
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: ListView(
-                children: [
-                  _buildEditableField(
-                    "Full Name",
-                    "Enter your name",
-                    nameController,
-                    isEditing,
-                  ),
-                  const SizedBox(height: 16),
-                  _buildEditableField(
-                    "Email",
-                    "Enter your email",
-                    emailController,
-                    isEditing,
-                    keyboardType: TextInputType.emailAddress,
-                  ),
-                  const SizedBox(height: 16),
-                  _buildEditableField(
-                    "Phone Number",
-                    "Enter your phone number",
-                    phoneController,
-                    isEditing,
-                    keyboardType: TextInputType.phone,
-                  ),
-                  const SizedBox(height: 32),
-                  _buildOptionTile(
-                    icon: Icons.event,
-                    title: "My Events",
-                    subtitle: "View and manage your created events",
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => EventListScreen(),
-                        ),
-                      );
-                    },
-                  ),
-                  _buildOptionTile(
-                    icon: Icons.favorite,
-                    title: "My Pledged Gifts",
-                    subtitle: "See gifts you pledged for others",
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => PledgedGiftsScreen(),
-                        ),
-                      );
-                    },
-                  ),
-                ],
-              ),
+        padding: const EdgeInsets.all(16.0),
+        child: ListView(
+          children: [
+            _buildEditableField(
+              "Full Name",
+              "Enter your name",
+              nameController,
+              isEditing,
             ),
+            const SizedBox(height: 16),
+            _buildEditableField(
+              "Email",
+              "Enter your email",
+              emailController,
+              isEditing,
+              keyboardType: TextInputType.emailAddress,
+            ),
+            const SizedBox(height: 16),
+            _buildEditableField(
+              "Phone Number",
+              "Enter your phone number",
+              phoneController,
+              isEditing,
+              keyboardType: TextInputType.phone,
+            ),
+            const SizedBox(height: 16),
+            _buildEditableField(
+              "New Password",
+              "Enter new password",
+              passwordController,
+              isEditing,
+              obscureText: true,
+            ),
+            const SizedBox(height: 32),
+            _buildOptionTile(
+              icon: Icons.event,
+              title: "My Events",
+              subtitle: "View and manage your created events",
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) =>
+                    const TabsScreen(initialPageIndex: 1),
+                  ),
+                );
+              },
+            ),
+            _buildOptionTile(
+              icon: Icons.favorite,
+              title: "My Pledged Gifts",
+              subtitle: "See gifts you pledged for others",
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) =>
+                    const TabsScreen(initialPageIndex: 2),
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
     );
   }
 
   Widget _buildEditableField(
-    String label,
-    String hint,
-    TextEditingController controller,
-    bool isEditable, {
-    TextInputType keyboardType = TextInputType.text,
-  }) {
+      String label,
+      String hint,
+      TextEditingController controller,
+      bool isEditable, {
+        TextInputType keyboardType = TextInputType.text,
+        bool obscureText = false,
+      }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -218,6 +253,7 @@ class ProfileScreenState extends State<ProfileScreen> {
           controller: controller,
           enabled: isEditable,
           keyboardType: keyboardType,
+          obscureText: obscureText,
           decoration: InputDecoration(
             hintText: hint,
             border: OutlineInputBorder(

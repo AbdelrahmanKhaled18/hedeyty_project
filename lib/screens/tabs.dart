@@ -1,30 +1,26 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:yarb/screens/home_screen.dart';
-import 'package:yarb/widgets/main_drawer.dart';
-import 'package:yarb/screens/gifts/pledged_gifts_screen.dart';
-
+import 'home_screen.dart';
 import 'events/event_list_screen.dart';
+import 'gifts/pledged_gifts_screen.dart';
+import '../widgets/main_drawer.dart';
 
 class TabsScreen extends StatefulWidget {
-  const TabsScreen({super.key});
+  final int initialPageIndex;
+
+  const TabsScreen({super.key, this.initialPageIndex = 0});
 
   @override
   State<TabsScreen> createState() => _TabsScreenState();
 }
 
-final user = FirebaseAuth.instance.currentUser;
-
-
 class _TabsScreenState extends State<TabsScreen> {
   int _selectedPageIndex = 0;
 
-
-  // Define the pages with their titles
   final Map<int, Widget> pages = {
     0: const HomeScreen(),
     1: const EventListScreen(),
-    2: const PledgedGiftsScreen(), 
+    2: const PledgedGiftsScreen(),
   };
 
   final List<String> titles = [
@@ -32,6 +28,12 @@ class _TabsScreenState extends State<TabsScreen> {
     'My Events List',
     'Pledged Gifts',
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedPageIndex = widget.initialPageIndex;
+  }
 
   void _selectPage(int index) {
     setState(() {
@@ -43,10 +45,10 @@ class _TabsScreenState extends State<TabsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(titles[_selectedPageIndex]), // Display title based on selected page
+        title: Text(titles[_selectedPageIndex]),
       ),
-      drawer: const MainDrawer(), // Add the Drawer here
-      body: pages[_selectedPageIndex] ?? const SizedBox(), // Display the active page
+      drawer: const MainDrawer(),
+      body: pages[_selectedPageIndex] ?? const SizedBox(),
       bottomNavigationBar: BottomNavigationBar(
         onTap: _selectPage,
         currentIndex: _selectedPageIndex,
