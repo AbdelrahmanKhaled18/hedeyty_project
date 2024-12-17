@@ -7,6 +7,7 @@ import '../database/database_helper.dart';
 import '../database/models/friend.dart';
 import '../widgets/friend_item.dart';
 import 'events/event_creation.dart';
+import 'events/event_list_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -224,10 +225,12 @@ class _HomeScreenState extends State<HomeScreen> {
                               friendName: user['name'],
                               friendFirestoreId: user['id'],
                               onTap: () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                        'Navigating to ${user['name']}\'s events'),
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => EventListScreen(
+                                        friendId: user['id'],
+                                        friendName: user['name']),
                                   ),
                                 );
                               },
