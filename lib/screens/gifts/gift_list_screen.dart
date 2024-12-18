@@ -22,6 +22,7 @@ class GiftListScreen extends StatefulWidget {
 
 class _GiftListScreenState extends State<GiftListScreen> {
   late Stream<QuerySnapshot> _giftsStream;
+  String _sortBy = 'name';
 
   @override
   void initState() {
@@ -30,10 +31,18 @@ class _GiftListScreenState extends State<GiftListScreen> {
   }
 
   void _fetchGifts() {
-    _giftsStream = FirebaseFirestore.instance
-        .collection('gifts')
-        .where('event_id', isEqualTo: widget.eventId)
-        .snapshots();
+    try {
+      setState(() {
+        _giftsStream = FirebaseFirestore.instance
+            .collection('gifts')
+            .where('event_id', isEqualTo: widget.eventId)
+            .snapshots();
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error fetching gifts: $e')),
+      );
+    }
   }
 
   Future<void> _deleteGift(String giftId) async {
@@ -66,6 +75,12 @@ class _GiftListScreenState extends State<GiftListScreen> {
         title: Text("${widget.eventName}'s Gift List"),
         centerTitle: true,
         backgroundColor: Colors.teal,
+        actions: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+            child: _buildSortDropdown(),
+          ),
+        ],
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.pop(context),
@@ -89,12 +104,13 @@ class _GiftListScreenState extends State<GiftListScreen> {
               );
             }
 
-            final gifts = snapshot.data!.docs;
+
+            final sortedGifts = _sortGifts(snapshot.data!.docs);
 
             return ListView.builder(
-              itemCount: gifts.length,
+              itemCount: sortedGifts.length,
               itemBuilder: (context, index) {
-                final gift = gifts[index];
+                final gift = sortedGifts[index];
                 return _buildGiftCard(gift);
               },
             );
@@ -287,5 +303,59 @@ class _GiftListScreenState extends State<GiftListScreen> {
         );
       },
     );
+  }
+
+  Widget _buildSortDropdown() {
+    return DropdownButton<String>(
+      value: _sortBy,
+      dropdownColor: Colors.teal,
+      icon: const Icon(Icons.sort, color: Colors.white),
+      underline: const SizedBox(),
+      style: const TextStyle(color: Colors.white, fontSize: 16),
+      items: const [
+        DropdownMenuItem(
+          value: 'name',
+          child: Text("Sort by Name"),
+        ),
+        DropdownMenuItem(
+          value: 'category',
+          child: Text("Sort by Category"),
+        ),
+        DropdownMenuItem(
+          value: 'price',
+          child: Text("Sort by Price"),
+        ),
+      ],
+      onChanged: (value) {
+        setState(() {
+          _sortBy = value!;
+          _fetchGifts(); // Re-fetch gifts with the updated sorting
+        });
+      },
+    );
+  }
+
+  List<DocumentSnapshot> _sortGifts(List<DocumentSnapshot> gifts) {
+    List<DocumentSnapshot> sortedGifts = List<DocumentSnapshot>.from(gifts);
+
+    sortedGifts.sort((a, b) {
+      final aData = a.data() as Map<String, dynamic>;
+      final bData = b.data() as Map<String, dynamic>;
+
+      if (_sortBy == 'price') {
+        return (aData['price'] ?? 0).compareTo(bData['price'] ?? 0);
+      } else if (_sortBy == 'category') {
+        return (aData['category'] ?? '').toString().compareTo(
+              (bData['category'] ?? '').toString(),
+            );
+      } else {
+        // Default: Sort by name
+        return (aData['name'] ?? '').toString().compareTo(
+              (bData['name'] ?? '').toString(),
+            );
+      }
+    });
+
+    return sortedGifts;
   }
 }

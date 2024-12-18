@@ -43,117 +43,151 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  final _formKey = GlobalKey<FormState>();
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 60),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            AnimatedOpacity(
-              opacity: 1.0,
-              duration: const Duration(seconds: 2),
-              child: Image.asset(
-                'assets/undraw_happy-birthday_lmk0.png',
-                height: 250,
-                fit: BoxFit.contain,
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Animated Image
+              AnimatedOpacity(
+                opacity: 1.0,
+                duration: const Duration(seconds: 2),
+                child: Image.asset(
+                  'assets/undraw_happy-birthday_lmk0.png',
+                  height: 250,
+                  fit: BoxFit.contain,
+                ),
               ),
-            ),
-            const SizedBox(height: 30),
-            Text(
-              'Welcome Back!',
-              style: Theme.of(context).textTheme.headlineSmall!.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.teal.shade800,
-                  ),
-            ),
-            const SizedBox(height: 5),
-            Text(
-              'Log in to continue',
-              style: Theme.of(context).textTheme.titleMedium!.copyWith(
-                    color: Colors.grey.shade600,
-                  ),
-            ),
-            const SizedBox(height: 30),
+              const SizedBox(height: 30),
 
-            // Email TextField
-            _buildTextField(
-              controller: _emailController,
-              labelText: 'Email',
-              hintText: 'Enter your email',
-              icon: Icons.email_outlined,
-              isObscured: false,
-            ),
+              // Welcome Text
+              Text(
+                'Welcome Back!',
+                style: Theme.of(context).textTheme.headlineSmall!.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.teal.shade800,
+                ),
+              ),
+              const SizedBox(height: 5),
 
-            const SizedBox(height: 20),
+              // Subtitle Text
+              Text(
+                'Log in to continue',
+                style: Theme.of(context).textTheme.titleMedium!.copyWith(
+                  color: Colors.grey.shade600,
+                ),
+              ),
+              const SizedBox(height: 30),
 
-            // Password TextField
-            _buildTextField(
-              controller: _passwordController,
-              labelText: 'Password',
-              hintText: 'Enter your password',
-              icon: Icons.lock_outline,
-              isObscured: true,
-            ),
+              // Email TextField
+              _buildTextField(
+                controller: _emailController,
+                labelText: 'Email',
+                hintText: 'Enter your email',
+                icon: Icons.email_outlined,
+                isObscured: false,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter your email';
+                  }
+                  if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
+                    return 'Please enter a valid email address';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 20),
 
-            const SizedBox(height: 30),
+              // Password TextField
+              _buildTextField(
+                controller: _passwordController,
+                labelText: 'Password',
+                hintText: 'Enter your password',
+                icon: Icons.lock_outline,
+                isObscured: true,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter your password';
+                  }
+                  if (value.length < 6) {
+                    return 'Password must be at least 6 characters long';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 30),
 
-            // Login Button
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 800),
-              curve: Curves.easeInOut,
-              child: SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _login,
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 15),
-                    backgroundColor: Colors.teal.shade800,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(25),
+              // Login Button
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 800),
+                curve: Curves.easeInOut,
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _isLoading
+                        ? null
+                        : () {
+                      if (_formKey.currentState!.validate()) {
+                        _login();
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 15),
+                      backgroundColor: Colors.teal.shade800,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(25),
+                      ),
+                      elevation: 5,
                     ),
-                    elevation: 5,
+                    child: _isLoading
+                        ? const CircularProgressIndicator(
+                      color: Colors.white,
+                    )
+                        : const Text(
+                      'Log In',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
                   ),
-                  child: _isLoading
-                      ? const CircularProgressIndicator(
-                          color: Colors.white,
-                        )
-                      : const Text(
-                          'Log In',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
-                          ),
-                        ),
                 ),
               ),
-            ),
-            const SizedBox(height: 20),
+              const SizedBox(height: 20),
 
-            GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  _customPageRoute(const SignUpScreen()),
-                );
-              },
-              child: const Text(
-                "Don't have an account? Sign Up",
-                style: TextStyle(
-                  color: Colors.teal,
-                  fontSize: 16,
-                  decoration: TextDecoration.underline,
+              // Sign Up Link
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    _customPageRoute(const SignUpScreen()),
+                  );
+                },
+                child: const Text(
+                  "Don't have an account? Sign Up",
+                  style: TextStyle(
+                    color: Colors.teal,
+                    fontSize: 16,
+                    decoration: TextDecoration.underline,
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 20),
-          ],
+              const SizedBox(height: 20),
+            ],
+          ),
         ),
       ),
     );
   }
+
 
   Widget _buildTextField({
     required TextEditingController controller,
@@ -161,27 +195,34 @@ class _LoginScreenState extends State<LoginScreen> {
     required String hintText,
     required IconData icon,
     required bool isObscured,
+    required String? Function(String?) validator,
   }) {
-    return TextFormField(
-      controller: controller,
-      obscureText: isObscured,
-      decoration: InputDecoration(
-        labelText: labelText,
-        hintText: hintText,
-        prefixIcon: Icon(icon, color: Colors.teal.shade800),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(25),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(25),
-          borderSide: BorderSide(
-            color: Colors.teal.shade800,
-            width: 2,
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: TextFormField(
+        controller: controller,
+        obscureText: isObscured,
+        decoration: InputDecoration(
+          labelText: labelText,
+          hintText: hintText,
+          prefixIcon: Icon(icon, color: Colors.teal.shade800),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(25),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(25),
+            borderSide: BorderSide(
+              color: Colors.teal.shade800,
+              width: 2,
+            ),
           ),
         ),
+        validator: validator,
       ),
     );
   }
+
+
 
   PageRouteBuilder _customPageRoute(Widget page) {
     return PageRouteBuilder(
