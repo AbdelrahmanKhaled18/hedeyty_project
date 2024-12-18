@@ -22,11 +22,13 @@ class ProfileScreenState extends State<ProfileScreen> {
 
   bool isEditing = false;
   bool isLoading = true;
+  List<Map<String, dynamic>> pledgedGifts = [];
 
   @override
   void initState() {
     super.initState();
     _loadUserData();
+    _fetchPledgedGifts();
   }
 
   Future<void> _loadUserData() async {
@@ -82,6 +84,54 @@ class ProfileScreenState extends State<ProfileScreen> {
         where: 'firestore_id = ?',
         whereArgs: [userId],
       );
+    }
+  }
+
+  Future<void> _fetchPledgedGifts() async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) return;
+
+      final snapshot = await FirebaseFirestore.instance
+          .collection('gifts')
+          .where('pledged_to', isEqualTo: user.uid)
+          .where('status', isEqualTo: 'pledged')
+          .get();
+
+      List<Map<String, dynamic>> fetchedGifts = [];
+
+      // Fetch details for each pledged gift and resolve the user name
+      for (var doc in snapshot.docs) {
+        final data = doc.data();
+
+        String pledgedByName = 'Unknown'; // Default value
+        if (data['pledged_by'] != null) {
+          // Fetch the user name for 'pledged_by'
+          final pledgedBySnapshot = await FirebaseFirestore.instance
+              .collection('users')
+              .doc(data['pledged_by'])
+              .get();
+
+          if (pledgedBySnapshot.exists) {
+            pledgedByName = pledgedBySnapshot['name'] ?? 'Unknown';
+          }
+        }
+
+        // Add gift data with pledged_by name
+        fetchedGifts.add({
+          'name': data['name'],
+          'category': data['category'],
+          'description': data['description'] ?? 'No description provided',
+          'price': data['price'] ?? 0.0,
+          'pledged_by': pledgedByName,
+        });
+      }
+
+      setState(() {
+        pledgedGifts = fetchedGifts;
+      });
+    } catch (e) {
+      _showSnackBar("Failed to load pledged gifts: $e");
     }
   }
 
@@ -154,12 +204,8 @@ class ProfileScreenState extends State<ProfileScreen> {
           IconButton(
             icon: Icon(isEditing ? Icons.check : Icons.edit, size: 28),
             onPressed: () async {
-              if (isEditing) {
-                await _saveUserData();
-              }
-              setState(() {
-                isEditing = !isEditing;
-              });
+              if (isEditing) await _saveUserData();
+              setState(() => isEditing = !isEditing);
             },
           ),
         ],
@@ -171,7 +217,6 @@ class ProfileScreenState extends State<ProfileScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Profile Header
                   Center(
                     child: CircleAvatar(
                       radius: 60,
@@ -184,10 +229,9 @@ class ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ),
                   const SizedBox(height: 20),
-
                   _buildEditableField(
                     "Full Name",
-                    "Enter your name",
+                    "Enter your full name",
                     nameController,
                     isEditing,
                     icon: Icons.person_outline,
@@ -203,7 +247,7 @@ class ProfileScreenState extends State<ProfileScreen> {
                   ),
                   const SizedBox(height: 20),
                   _buildEditableField(
-                    "Phone Number",
+                    "Phone",
                     "Enter your phone number",
                     phoneController,
                     isEditing,
@@ -213,15 +257,13 @@ class ProfileScreenState extends State<ProfileScreen> {
                   const SizedBox(height: 20),
                   _buildEditableField(
                     "New Password",
-                    "Enter new password",
+                    "Enter your new password",
                     passwordController,
                     isEditing,
                     icon: Icons.lock_outline,
                     obscureText: true,
                   ),
                   const SizedBox(height: 40),
-
-                  // Action Buttons
                   _buildOptionTile(
                     icon: Icons.event,
                     title: "My Events",
@@ -250,37 +292,75 @@ class ProfileScreenState extends State<ProfileScreen> {
                       );
                     },
                   ),
+                  const SizedBox(height: 30),
+                  const Text(
+                    "Gifts Pledged to Me",
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.teal,
+                    ),
+                  ),
+                  pledgedGifts.isEmpty
+                      ? const Text(
+                          "No pledged gifts found.",
+                          style: TextStyle(fontSize: 16, color: Colors.grey),
+                        )
+                      : ListView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: pledgedGifts.length,
+                          itemBuilder: (context, index) {
+                            final gift = pledgedGifts[index];
+                            return _buildGiftCard(gift);
+                          },
+                        ),
                 ],
               ),
             ),
     );
   }
 
-  Widget _buildEditableField(
-    String label,
-    String hint,
-    TextEditingController controller,
-    bool isEditable, {
-    required IconData icon,
-    TextInputType keyboardType = TextInputType.text,
-    bool obscureText = false,
-  }) {
-    return TextField(
-      controller: controller,
-      enabled: isEditable,
-      obscureText: obscureText,
-      keyboardType: keyboardType,
-      decoration: InputDecoration(
-        prefixIcon: Icon(icon, color: Colors.teal.shade800),
-        labelText: label,
-        hintText: hint,
-        filled: true,
-        fillColor: isEditable ? Colors.grey.shade100 : Colors.grey.shade200,
-        contentPadding:
-            const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(30),
-          borderSide: BorderSide.none,
+  Widget _buildGiftCard(Map<String, dynamic> gift) {
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(15),
+      ),
+      elevation: 3,
+      child: ListTile(
+        contentPadding: const EdgeInsets.all(16),
+        leading: CircleAvatar(
+          backgroundColor: Colors.teal.shade100,
+          child: Text(
+            gift['name'].substring(0, 1).toUpperCase(),
+            style: const TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Colors.teal,
+            ),
+          ),
+        ),
+        title: Text(
+          gift['name'],
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text("Category: ${gift['category']}",
+                style: const TextStyle(fontSize: 14, color: Colors.grey)),
+            Text("Price: \$${gift['price'].toStringAsFixed(2)}",
+                style: const TextStyle(fontSize: 14, color: Colors.grey)),
+            Text("Pledged By: ${gift['pledged_by']}",
+                style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.teal)),
+          ],
         ),
       ),
     );
@@ -317,6 +397,36 @@ class ProfileScreenState extends State<ProfileScreen> {
         ),
         trailing: const Icon(Icons.arrow_forward_ios, size: 20),
         onTap: onTap,
+      ),
+    );
+  }
+
+  Widget _buildEditableField(
+    String label,
+    String hint,
+    TextEditingController controller,
+    bool isEditable, {
+    required IconData icon,
+    TextInputType keyboardType = TextInputType.text,
+    bool obscureText = false,
+  }) {
+    return TextField(
+      controller: controller,
+      enabled: isEditable,
+      obscureText: obscureText,
+      keyboardType: keyboardType,
+      decoration: InputDecoration(
+        prefixIcon: Icon(icon, color: Colors.teal.shade800),
+        labelText: label,
+        hintText: hint,
+        filled: true,
+        fillColor: isEditable ? Colors.grey.shade100 : Colors.grey.shade200,
+        contentPadding:
+            const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(30),
+          borderSide: BorderSide.none,
+        ),
       ),
     );
   }

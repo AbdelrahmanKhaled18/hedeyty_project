@@ -20,6 +20,7 @@ class EventListScreen extends StatefulWidget {
 class _EventListScreenState extends State<EventListScreen> {
   late Stream<QuerySnapshot> _eventsStream;
   final EventDAO _eventDAO = EventDAO();
+  String _sortOption = 'Name';
 
   @override
   void initState() {
@@ -42,13 +43,29 @@ class _EventListScreenState extends State<EventListScreen> {
     return Scaffold(
       appBar: !isCurrentUser
           ? AppBar(
-              title: Text("${widget.friendName}'s Events List"),
-              centerTitle: true,
               backgroundColor: Colors.teal,
               leading: IconButton(
                 icon: const Icon(Icons.arrow_back),
                 onPressed: () => Navigator.pop(context),
               ),
+              title: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    "${widget.friendName}'s Events",
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                        fontSize: 19, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(width: 16),
+                  // Adds a gap between title and sorting
+                  Expanded(child: Container()),
+                  // Pushes sorting dropdown to the right
+                  _buildSortDropdown(),
+                  // Sorting dropdown
+                ],
+              ),
+              centerTitle: false, // Ensures layout works with the Row
             )
           : null,
       body: StreamBuilder<QuerySnapshot>(
@@ -70,6 +87,7 @@ class _EventListScreenState extends State<EventListScreen> {
           }
 
           final events = snapshot.data!.docs;
+          _sortEvents(events);
 
           return ListView.builder(
             itemCount: events.length,
@@ -421,17 +439,73 @@ class _EventListScreenState extends State<EventListScreen> {
   }
 
   void _navigateToGiftList(String eventId, String eventName, bool canEdit) {
-    print(widget.friendId);
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => GiftListScreen(
+      PageRouteBuilder(
+        transitionDuration: const Duration(milliseconds: 500),
+        pageBuilder: (context, animation, secondaryAnimation) => GiftListScreen(
           eventId: eventId,
           eventName: eventName,
           canEdit: canEdit,
         ),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          const begin = Offset(1.0, 0.0); // Slide from the right
+          const end = Offset.zero; // Final position
+          const curve = Curves.easeInOut; // Smooth easing
+
+          var tween =
+              Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+          var offsetAnimation = animation.drive(tween);
+
+          return SlideTransition(
+            position: offsetAnimation,
+            child: child,
+          );
+        },
       ),
     );
+  }
+
+  // Sorting dropdown widget
+  Widget _buildSortDropdown() {
+    return Padding(
+      padding: const EdgeInsets.only(right: 16),
+      child: DropdownButton<String>(
+        dropdownColor: Colors.teal,
+        value: _sortOption,
+        underline: const SizedBox(),
+        icon: const Icon(Icons.sort, color: Colors.white),
+        items: ['Name', 'Date'].map((String option) {
+          return DropdownMenuItem<String>(
+            value: option,
+
+            child: Text(
+              option,
+              style: const TextStyle(color: Colors.white),
+            ),
+          );
+        }).toList(),
+        onChanged: (value) {
+          setState(() {
+            _sortOption = value!;
+          });
+        },
+      ),
+    );
+  }
+
+  // Sorting logic
+  void _sortEvents(List<QueryDocumentSnapshot> events) {
+    if (_sortOption == 'Name') {
+      events
+          .sort((a, b) => a['name'].toString().compareTo(b['name'].toString()));
+    } else if (_sortOption == 'Date') {
+      events.sort((a, b) {
+        DateTime dateA = DateTime.parse(a['date']);
+        DateTime dateB = DateTime.parse(b['date']);
+        return dateA.compareTo(dateB);
+      });
+    }
   }
 
   Widget _buildStyledTextField({

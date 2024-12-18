@@ -227,10 +227,32 @@ class _HomeScreenState extends State<HomeScreen> {
                               onTap: () {
                                 Navigator.push(
                                   context,
-                                  MaterialPageRoute(
-                                    builder: (context) => EventListScreen(
-                                        friendId: user['id'],
-                                        friendName: user['name']),
+                                  PageRouteBuilder(
+                                    transitionDuration:
+                                        const Duration(milliseconds: 500),
+                                    pageBuilder: (context, animation,
+                                            secondaryAnimation) =>
+                                        EventListScreen(
+                                      friendId: user['id'],
+                                      friendName: user['name'],
+                                    ),
+                                    transitionsBuilder: (context, animation,
+                                        secondaryAnimation, child) {
+                                      const begin =
+                                          Offset(1.0, 0.0); // Slide from right
+                                      const end = Offset.zero; // Final position
+                                      const curve = Curves.easeInOut;
+
+                                      var tween = Tween(begin: begin, end: end)
+                                          .chain(CurveTween(curve: curve));
+                                      var offsetAnimation =
+                                          animation.drive(tween);
+
+                                      return SlideTransition(
+                                        position: offsetAnimation,
+                                        child: child,
+                                      );
+                                    },
                                   ),
                                 );
                               },
