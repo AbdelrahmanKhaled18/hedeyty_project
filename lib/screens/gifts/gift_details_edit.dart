@@ -3,11 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:yarb/database/DAO/event_dao.dart';
 import '../../database/DAO/gift_dao.dart';
 import '../../database/database_helper.dart';
 import '../../database/models/gift.dart';
 import 'dart:typed_data';
+
+import '../../notifications.dart';
 
 class GiftDetailsAndEditScreen extends StatefulWidget {
   final String giftId;
@@ -78,8 +79,6 @@ class _GiftDetailsAndEditScreenState extends State<GiftDetailsAndEditScreen> {
       _showSnackBar('Failed to load gift details: $e');
     }
   }
-
-
 
   Future<void> _updateGift() async {
     if (!_formKey.currentState!.validate()) return;
@@ -152,23 +151,35 @@ class _GiftDetailsAndEditScreenState extends State<GiftDetailsAndEditScreen> {
     setState(() => _isLoading = true);
 
     try {
-      String pledgedByFirestoreId =
-          FirebaseAuth.instance.currentUser?.uid ?? '';
+      String pledgedByFirestoreId = FirebaseAuth.instance.currentUser?.uid ?? '';
       int pledgedById = await _getLocalUserId(pledgedByFirestoreId);
 
       String pledgedToFirestoreId =
-          await _getFirestoreUserIdFromEvent(widget.friendFirestoreId);
+      await _getFirestoreUserIdFromEvent(widget.friendFirestoreId);
       int pledgedToId = await _getLocalUserId(pledgedToFirestoreId);
 
-      await FirebaseFirestore.instance
-          .collection('gifts')
-          .doc(widget.giftId)
-          .update({
+      // Fetch pledged by user's name
+      final pledgedBySnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(pledgedByFirestoreId)
+          .get();
+
+      final pledgedByName = pledgedBySnapshot['name'] ?? 'Someone';
+
+      // Convert the gift image to a Base64 string if available
+      String? encodedGiftImage;
+      if (giftImageBytes != null) {
+        encodedGiftImage = base64Encode(giftImageBytes!);
+      }
+
+      // Update Firestore
+      await FirebaseFirestore.instance.collection('gifts').doc(widget.giftId).update({
         'status': 'pledged',
         'pledged_by': pledgedByFirestoreId,
         'pledged_to': pledgedToFirestoreId,
       });
 
+      // Update Local SQLite Database
       final pledgedGift = Gift(
         id: await _getLocalGiftId(widget.giftId),
         name: _nameController.text,
@@ -180,9 +191,25 @@ class _GiftDetailsAndEditScreenState extends State<GiftDetailsAndEditScreen> {
         firestoreId: widget.giftId,
         pledgedBy: pledgedById,
         pledgedTo: pledgedToId,
+        giftImage: encodedGiftImage,
       );
 
       await GiftDAO().updateGift(pledgedGift);
+
+      // Fetch recipient's name
+      final recipientSnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(pledgedToFirestoreId)
+          .get();
+
+      final recipientName = recipientSnapshot['name'] ?? 'Recipient';
+
+      // Send notification to the recipient
+      await NotificationService().showNotification(
+        id: pledgedToId,
+        title: "Congratulations $recipientName!",
+        body: "You’ve received a gift: ${_nameController.text} from $pledgedByName.",
+      );
 
       _showSnackBar('Gift pledged successfully');
       Navigator.pop(context);
@@ -192,6 +219,9 @@ class _GiftDetailsAndEditScreenState extends State<GiftDetailsAndEditScreen> {
       setState(() => _isLoading = false);
     }
   }
+
+
+
 
   Future<int> _getLocalUserId(String firestoreUserId) async {
     final db = await DatabaseHelper().database;
@@ -275,22 +305,22 @@ class _GiftDetailsAndEditScreenState extends State<GiftDetailsAndEditScreen> {
         ),
         actions: widget.canEdit && _giftStatus != 'pledged'
             ? [
-          if (!_isEditing)
-            IconButton(
-              icon: const Icon(Icons.edit),
-              onPressed: () => setState(() => _isEditing = true),
-            ),
-          if (_isEditing)
-            IconButton(
-              icon: const Icon(Icons.save),
-              onPressed: _updateGift,
-            ),
-          if (_isEditing)
-            IconButton(
-              icon: const Icon(Icons.delete, color: Colors.red),
-              onPressed: _deleteGift,
-            ),
-        ]
+                if (!_isEditing)
+                  IconButton(
+                    icon: const Icon(Icons.edit),
+                    onPressed: () => setState(() => _isEditing = true),
+                  ),
+                if (_isEditing)
+                  IconButton(
+                    icon: const Icon(Icons.save),
+                    onPressed: _updateGift,
+                  ),
+                if (_isEditing)
+                  IconButton(
+                    icon: const Icon(Icons.delete, color: Colors.red),
+                    onPressed: _deleteGift,
+                  ),
+              ]
             : null,
       ),
       body: Padding(
@@ -310,13 +340,13 @@ class _GiftDetailsAndEditScreenState extends State<GiftDetailsAndEditScreen> {
                       backgroundImage: giftImageBytes != null
                           ? MemoryImage(giftImageBytes!)
                           : const AssetImage('assets/default_gift.jpg')
-                      as ImageProvider,
+                              as ImageProvider,
                       child: _isEditing && giftImageBytes == null
                           ? const Icon(
-                        Icons.camera_alt,
-                        size: 50,
-                        color: Colors.teal,
-                      )
+                              Icons.camera_alt,
+                              size: 50,
+                              color: Colors.teal,
+                            )
                           : null,
                     ),
                   ),
@@ -354,8 +384,7 @@ class _GiftDetailsAndEditScreenState extends State<GiftDetailsAndEditScreen> {
                 const SizedBox(height: 24),
                 if (!widget.canEdit && _giftStatus != 'pledged')
                   _buildPledgeButton(),
-                if (widget.canEdit && _isEditing)
-                  _buildSaveButton(),
+                if (widget.canEdit && _isEditing) _buildSaveButton(),
               ],
             ),
           ),
@@ -363,9 +392,6 @@ class _GiftDetailsAndEditScreenState extends State<GiftDetailsAndEditScreen> {
       ),
     );
   }
-
-
-
 
   Future<void> _pickGiftImage() async {
     try {
