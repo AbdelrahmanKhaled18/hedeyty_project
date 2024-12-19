@@ -478,7 +478,6 @@ class _EventListScreenState extends State<EventListScreen> {
         items: ['Name', 'Date'].map((String option) {
           return DropdownMenuItem<String>(
             value: option,
-
             child: Text(
               option,
               style: const TextStyle(color: Colors.white),

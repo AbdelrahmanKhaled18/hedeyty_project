@@ -26,9 +26,9 @@ class SplashScreen extends StatelessWidget {
             Text(
               "Welcome to Hedieaty",
               style: Theme.of(context).textTheme.headlineSmall!.copyWith(
-                fontWeight: FontWeight.bold,
-                color: Colors.teal.shade700,
-              ),
+                    fontWeight: FontWeight.bold,
+                    color: Colors.teal.shade700,
+                  ),
             ),
             const SizedBox(height: 10),
 
@@ -36,8 +36,8 @@ class SplashScreen extends StatelessWidget {
             Text(
               "Make every gift special!",
               style: Theme.of(context).textTheme.titleMedium!.copyWith(
-                color: Colors.grey.shade600,
-              ),
+                    color: Colors.grey.shade600,
+                  ),
             ),
           ],
         ),

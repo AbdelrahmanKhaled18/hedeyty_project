@@ -64,6 +64,17 @@ class UserDAO {
     );
   }
 
+  // Update user profile image by Firestore ID
+  Future<int> updateUserProfileImage(String firestoreId, String profileImage) async {
+    final db = await DatabaseHelper().database;
+    return await db.update(
+      'users',
+      {'profile_image': profileImage},
+      where: 'firestore_id = ?',
+      whereArgs: [firestoreId],
+    );
+  }
+
   // Check if a user exists by Firestore ID
   Future<bool> userExistsByFirestoreId(String firestoreId) async {
     final db = await DatabaseHelper().database;
@@ -84,5 +95,16 @@ class UserDAO {
       whereArgs: [email],
     );
     return result.isNotEmpty;
+  }
+
+  // Update only specific user fields (including profile image)
+  Future<int> updateUserFields(String firestoreId, Map<String, dynamic> updatedFields) async {
+    final db = await DatabaseHelper().database;
+    return await db.update(
+      'users',
+      updatedFields,
+      where: 'firestore_id = ?',
+      whereArgs: [firestoreId],
+    );
   }
 }

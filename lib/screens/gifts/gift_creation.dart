@@ -1,9 +1,13 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../database/DAO/gift_dao.dart';
 import '../../database/models/gift.dart';
 import '../../database/database_helper.dart';
-
+import 'dart:typed_data';
 class GiftCreationScreen extends StatefulWidget {
   final String firestoreEventId;
 
@@ -23,6 +27,7 @@ class _GiftCreationScreenState extends State<GiftCreationScreen> {
   final TextEditingController _priceController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
+  Uint8List? giftImageBytes;
 
   Future<int> _getLocalEventId(String firestoreEventId) async {
     final db = await DatabaseHelper().database;
@@ -44,17 +49,28 @@ class _GiftCreationScreenState extends State<GiftCreationScreen> {
     setState(() => _isLoading = true);
 
     try {
+      // Convert image to Base64 if available
+      String? imageString;
+      if (giftImageBytes != null) {
+        final compressedImageBytes = await FlutterImageCompress.compressWithList(
+          giftImageBytes!,
+          quality: 70, // Adjust quality for smaller size
+        );
+        imageString = base64Encode(compressedImageBytes);
+      }
+
       // Add gift to Firestore
       DocumentReference firestoreGiftRef =
-          await FirebaseFirestore.instance.collection('gifts').add({
+      await FirebaseFirestore.instance.collection('gifts').add({
         'event_id': widget.firestoreEventId,
-        'name': _nameController.text,
-        'description': _descriptionController.text,
-        'category': _categoryController.text,
-        'price': double.tryParse(_priceController.text) ?? 0.0,
+        'name': _nameController.text.trim(),
+        'description': _descriptionController.text.trim(),
+        'category': _categoryController.text.trim(),
+        'price': double.tryParse(_priceController.text.trim()) ?? 0.0,
         'status': 'available',
         'pledged_by': null,
         'pledged_to': null,
+        if (imageString != null) 'gift_image': imageString,
       });
 
       // Get corresponding local event ID
@@ -62,15 +78,16 @@ class _GiftCreationScreenState extends State<GiftCreationScreen> {
 
       // Create and insert gift into the local SQLite database
       Gift newGift = Gift(
-        name: _nameController.text,
-        description: _descriptionController.text,
-        category: _categoryController.text,
-        price: double.tryParse(_priceController.text) ?? 0.0,
+        name: _nameController.text.trim(),
+        description: _descriptionController.text.trim(),
+        category: _categoryController.text.trim(),
+        price: double.tryParse(_priceController.text.trim()) ?? 0.0,
         status: 'available',
         eventId: localEventId,
         firestoreId: firestoreGiftRef.id,
         pledgedBy: null,
         pledgedTo: null,
+        giftImage: imageString, // Save the image locally
       );
 
       await GiftDAO().insertGift(newGift);
@@ -89,6 +106,7 @@ class _GiftCreationScreenState extends State<GiftCreationScreen> {
     }
   }
 
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -105,6 +123,37 @@ class _GiftCreationScreenState extends State<GiftCreationScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Upload Image Section
+                Center(
+                  child: GestureDetector(
+                    onTap: _pickImage,
+                    child: CircleAvatar(
+                      radius: 60,
+                      backgroundColor: Colors.teal.shade100,
+                      backgroundImage: giftImageBytes != null
+                          ? MemoryImage(giftImageBytes!)
+                          : null,
+                      child: giftImageBytes == null
+                          ? Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: const [
+                          Icon(Icons.camera_alt, size: 40, color: Colors.teal),
+                          SizedBox(height: 8),
+                          Text(
+                            "Upload Image",
+                            style: TextStyle(
+                              color: Colors.teal,
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      )
+                          : null,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
                 _buildEnhancedTextField(
                   controller: _nameController,
                   label: "Gift Name",
@@ -154,18 +203,18 @@ class _GiftCreationScreenState extends State<GiftCreationScreen> {
                     ),
                     child: _isLoading
                         ? const CircularProgressIndicator(
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              Colors.white,
-                            ),
-                          )
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        Colors.white,
+                      ),
+                    )
                         : const Text(
-                            'Add Gift',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
+                      'Add Gift',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -175,6 +224,26 @@ class _GiftCreationScreenState extends State<GiftCreationScreen> {
       ),
     );
   }
+
+
+  Future<void> _pickImage() async {
+    try {
+      final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
+
+      if (pickedFile != null) {
+        final imageBytes = await pickedFile.readAsBytes();
+        setState(() {
+          giftImageBytes = imageBytes; // Store image bytes
+        });
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Image upload failed: $e")),
+      );
+    }
+  }
+
+
 
   Widget _buildEnhancedTextField({
     required TextEditingController controller,

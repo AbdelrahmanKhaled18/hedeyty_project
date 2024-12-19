@@ -6,6 +6,7 @@ class UserModel {
   final String? password;
   final String? preferences;
   final String? firestoreId;  // Firestore ID field
+  final String? profileImage; // Added profile image field
 
   UserModel({
     this.id,
@@ -15,6 +16,7 @@ class UserModel {
     this.password,
     this.preferences,
     this.firestoreId,
+    this.profileImage,        // Initialize profile image
   });
 
   /// Convert a User into a Map for SQL insertion
@@ -23,10 +25,11 @@ class UserModel {
       'id': id,
       'name': name,
       'email': email,
-      'phone': phone,        // Include phone in map
+      'phone': phone,
       'password': password,
       'preferences': preferences,
       'firestore_id': firestoreId,
+      'profile_image': profileImage,  // Include profile image
     };
   }
 
@@ -36,10 +39,11 @@ class UserModel {
       id: map['id'] as int?,
       name: map['name'] as String,
       email: map['email'] as String,
-      phone: map['phone'] as String?,    // Extract phone from map
+      phone: map['phone'] as String?,
       password: map['password'] as String?,
       preferences: map['preferences'] as String?,
       firestoreId: map['firestore_id'] as String?,
+      profileImage: map['profile_image'] as String?,  // Extract profile image
     );
   }
 }

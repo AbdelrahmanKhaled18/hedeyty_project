@@ -1,11 +1,56 @@
+import 'dart:convert';
+import 'dart:typed_data';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../screens/auth/login_screen.dart';
 import '../screens/profile_screen.dart';
 
-class MainDrawer extends StatelessWidget {
+class MainDrawer extends StatefulWidget {
   const MainDrawer({super.key});
+
+  @override
+  State<MainDrawer> createState() => _MainDrawerState();
+}
+
+class _MainDrawerState extends State<MainDrawer> {
+  Uint8List? profileImageBytes;
+  bool isLoadingImage = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchUserProfileImage();
+  }
+
+  Future<void> _fetchUserProfileImage() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      try {
+        final snapshot = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get();
+
+        if (snapshot.exists && snapshot.data() != null) {
+          final data = snapshot.data()!;
+          if (data['profile_image'] != null &&
+              data['profile_image'].isNotEmpty) {
+            setState(() {
+              profileImageBytes = base64Decode(data['profile_image']);
+              isLoadingImage = false;
+            });
+          } else {
+            setState(() => isLoadingImage = false);
+          }
+        }
+      } catch (e) {
+        debugPrint("Error fetching profile image: $e");
+        setState(() => isLoadingImage = false);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -31,23 +76,24 @@ class MainDrawer extends StatelessWidget {
                 CircleAvatar(
                   radius: 40,
                   backgroundColor: Colors.white,
-                  child: user?.photoURL != null
-                      ? ClipOval(
-                    child: Image.network(
-                      user!.photoURL!,
-                      width: 80,
-                      height: 80,
-                      fit: BoxFit.cover,
-                    ),
+                  backgroundImage: !isLoadingImage && profileImageBytes != null
+                      ? MemoryImage(profileImageBytes!)
+                      : null,
+                  child: isLoadingImage
+                      ? const CircularProgressIndicator(
+                    color: Colors.teal,
                   )
-                      : Text(
-                    user?.displayName?.substring(0, 1) ?? 'G',
+                      : (profileImageBytes == null
+                      ? Text(
+                    user?.displayName?.substring(0, 1).toUpperCase() ??
+                        'G',
                     style: const TextStyle(
                       fontSize: 40,
                       fontWeight: FontWeight.bold,
                       color: Colors.teal,
                     ),
-                  ),
+                  )
+                      : null),
                 ),
                 const SizedBox(width: 20),
                 Column(
@@ -83,7 +129,8 @@ class MainDrawer extends StatelessWidget {
               Navigator.pop(context);
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => ProfileScreen()),
+                MaterialPageRoute(
+                    builder: (context) => const ProfileScreen()),
               );
             },
           ),

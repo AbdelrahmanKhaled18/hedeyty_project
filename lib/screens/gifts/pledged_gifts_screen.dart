@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -46,6 +48,15 @@ class PledgedGiftsScreen extends StatelessWidget {
             padding: const EdgeInsets.all(8),
             itemBuilder: (context, index) {
               final gift = gifts[index];
+              Uint8List? giftImageBytes;
+
+              if (gift['gift_image'] != null && gift['gift_image'].isNotEmpty) {
+                try {
+                  giftImageBytes = base64Decode(gift['gift_image']);
+                } catch (e) {
+                  debugPrint("Error decoding gift image: $e");
+                }
+              }
 
               return FutureBuilder<DocumentSnapshot>(
                 future: FirebaseFirestore.instance
@@ -72,14 +83,10 @@ class PledgedGiftsScreen extends StatelessWidget {
                         leading: CircleAvatar(
                           radius: 30,
                           backgroundColor: Colors.teal.shade100,
-                          child: Text(
-                            gift['name'].substring(0, 1).toUpperCase(),
-                            style: const TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.teal,
-                            ),
-                          ),
+                          backgroundImage: giftImageBytes != null
+                              ? MemoryImage(giftImageBytes)
+                              : const AssetImage('assets/default_gift.jpg')
+                          as ImageProvider,
                         ),
                         title: Text(
                           gift['name'],
@@ -139,7 +146,8 @@ class PledgedGiftsScreen extends StatelessWidget {
                                       size: 16, color: Colors.grey),
                                   const SizedBox(width: 8),
                                   Text(
-                                    "Price: \$${gift['price'].toStringAsFixed(2)}",
+                                    "Price: \$${gift['price'].toStringAsFixed(
+                                        2)}",
                                     style: const TextStyle(
                                       fontSize: 14,
                                       color: Colors.grey,
@@ -155,7 +163,8 @@ class PledgedGiftsScreen extends StatelessWidget {
                                   const SizedBox(width: 8),
                                   Expanded(
                                     child: Text(
-                                      "Pledged To: ${friendData?['name'] ?? 'Unknown'}",
+                                      "Pledged To: ${friendData?['name'] ??
+                                          'Unknown'}",
                                       style: const TextStyle(
                                         fontSize: 14,
                                         fontWeight: FontWeight.bold,

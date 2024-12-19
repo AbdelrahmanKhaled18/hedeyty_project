@@ -1,10 +1,13 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:yarb/database/DAO/event_dao.dart';
 import '../../database/DAO/gift_dao.dart';
 import '../../database/database_helper.dart';
 import '../../database/models/gift.dart';
+import 'dart:typed_data';
 
 class GiftDetailsAndEditScreen extends StatefulWidget {
   final String giftId;
@@ -29,6 +32,8 @@ class _GiftDetailsAndEditScreenState extends State<GiftDetailsAndEditScreen> {
   final TextEditingController _categoryController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _priceController = TextEditingController();
+  Uint8List? giftImageBytes;
+  String _giftStatus = 'available';
 
   bool _isLoading = false;
   bool _isEditing = false;
@@ -49,10 +54,21 @@ class _GiftDetailsAndEditScreenState extends State<GiftDetailsAndEditScreen> {
       if (giftSnapshot.exists) {
         final giftData = giftSnapshot.data()!;
         setState(() {
-          _nameController.text = giftData['name'];
-          _categoryController.text = giftData['category'];
-          _descriptionController.text = giftData['description'];
-          _priceController.text = giftData['price'].toString();
+          _nameController.text = giftData['name'] ?? '';
+          _categoryController.text = giftData['category'] ?? '';
+          _descriptionController.text = giftData['description'] ?? '';
+          _priceController.text = giftData['price']?.toString() ?? '';
+          _giftStatus = giftData['status'] ?? 'available';
+
+          // Decode image if present
+          if (giftData['gift_image'] != null &&
+              giftData['gift_image'].isNotEmpty) {
+            try {
+              giftImageBytes = base64Decode(giftData['gift_image']);
+            } catch (e) {
+              giftImageBytes = null;
+            }
+          }
         });
       } else {
         _showSnackBar('Gift not found.');
@@ -63,24 +79,35 @@ class _GiftDetailsAndEditScreenState extends State<GiftDetailsAndEditScreen> {
     }
   }
 
+
+
   Future<void> _updateGift() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
 
     try {
-      // Update in Firestore
-      await FirebaseFirestore.instance
-          .collection('gifts')
-          .doc(widget.giftId)
-          .update({
+      // Convert and encode the gift image if available
+      String? imageString;
+      if (giftImageBytes != null) {
+        imageString = base64Encode(giftImageBytes!); // Encode to Base64
+      }
+
+      // Update Firestore
+      final updatedData = {
         'name': _nameController.text,
         'category': _categoryController.text,
         'description': _descriptionController.text,
         'price': double.tryParse(_priceController.text) ?? 0.0,
-      });
+        if (imageString != null) 'gift_image': imageString,
+      };
 
-      // Update in Local SQLite Database
+      await FirebaseFirestore.instance
+          .collection('gifts')
+          .doc(widget.giftId)
+          .update(updatedData);
+
+      // Update Local SQLite Database
       final updatedGift = Gift(
         id: await _getLocalGiftId(widget.giftId),
         name: _nameController.text,
@@ -90,6 +117,7 @@ class _GiftDetailsAndEditScreenState extends State<GiftDetailsAndEditScreen> {
         status: 'available',
         eventId: await _getLocalEventIdFromFirestore(widget.giftId),
         firestoreId: widget.giftId,
+        giftImage: imageString, // Save encoded image
       );
 
       await GiftDAO().updateGift(updatedGift);
@@ -129,7 +157,7 @@ class _GiftDetailsAndEditScreenState extends State<GiftDetailsAndEditScreen> {
       int pledgedById = await _getLocalUserId(pledgedByFirestoreId);
 
       String pledgedToFirestoreId =
-      await _getFirestoreUserIdFromEvent(widget.friendFirestoreId);
+          await _getFirestoreUserIdFromEvent(widget.friendFirestoreId);
       int pledgedToId = await _getLocalUserId(pledgedToFirestoreId);
 
       await FirebaseFirestore.instance
@@ -164,7 +192,6 @@ class _GiftDetailsAndEditScreenState extends State<GiftDetailsAndEditScreen> {
       setState(() => _isLoading = false);
     }
   }
-
 
   Future<int> _getLocalUserId(String firestoreUserId) async {
     final db = await DatabaseHelper().database;
@@ -246,17 +273,22 @@ class _GiftDetailsAndEditScreenState extends State<GiftDetailsAndEditScreen> {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.pop(context),
         ),
-        actions: widget.canEdit
+        actions: widget.canEdit && _giftStatus != 'pledged'
             ? [
           if (!_isEditing)
             IconButton(
               icon: const Icon(Icons.edit),
               onPressed: () => setState(() => _isEditing = true),
             ),
-          if (!_isEditing)
+          if (_isEditing)
+            IconButton(
+              icon: const Icon(Icons.save),
+              onPressed: _updateGift,
+            ),
+          if (_isEditing)
             IconButton(
               icon: const Icon(Icons.delete, color: Colors.red),
-              onPressed: () => _deleteGift(),
+              onPressed: _deleteGift,
             ),
         ]
             : null,
@@ -269,24 +301,45 @@ class _GiftDetailsAndEditScreenState extends State<GiftDetailsAndEditScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Center(
+                  child: GestureDetector(
+                    onTap: _isEditing ? _pickGiftImage : null,
+                    child: CircleAvatar(
+                      radius: 60,
+                      backgroundColor: Colors.teal.shade100,
+                      backgroundImage: giftImageBytes != null
+                          ? MemoryImage(giftImageBytes!)
+                          : const AssetImage('assets/default_gift.jpg')
+                      as ImageProvider,
+                      child: _isEditing && giftImageBytes == null
+                          ? const Icon(
+                        Icons.camera_alt,
+                        size: 50,
+                        color: Colors.teal,
+                      )
+                          : null,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
                 _buildEnhancedTextField(
                   label: 'Gift Name',
                   controller: _nameController,
-                  enabled: widget.canEdit && _isEditing,
+                  enabled: _isEditing,
                   icon: Icons.card_giftcard,
                 ),
                 const SizedBox(height: 16),
                 _buildEnhancedTextField(
                   label: 'Category',
                   controller: _categoryController,
-                  enabled: widget.canEdit && _isEditing,
+                  enabled: _isEditing,
                   icon: Icons.category_outlined,
                 ),
                 const SizedBox(height: 16),
                 _buildEnhancedTextField(
                   label: 'Description',
                   controller: _descriptionController,
-                  enabled: widget.canEdit && _isEditing,
+                  enabled: _isEditing,
                   icon: Icons.description_outlined,
                   maxLines: 4,
                 ),
@@ -294,13 +347,15 @@ class _GiftDetailsAndEditScreenState extends State<GiftDetailsAndEditScreen> {
                 _buildEnhancedTextField(
                   label: 'Price (Optional)',
                   controller: _priceController,
-                  enabled: widget.canEdit && _isEditing,
+                  enabled: _isEditing,
                   icon: Icons.monetization_on_outlined,
                   keyboardType: TextInputType.number,
                 ),
                 const SizedBox(height: 24),
-                if (!widget.canEdit) _buildPledgeButton(),
-                if (widget.canEdit && _isEditing) _buildSaveButton(),
+                if (!widget.canEdit && _giftStatus != 'pledged')
+                  _buildPledgeButton(),
+                if (widget.canEdit && _isEditing)
+                  _buildSaveButton(),
               ],
             ),
           ),
@@ -311,6 +366,24 @@ class _GiftDetailsAndEditScreenState extends State<GiftDetailsAndEditScreen> {
 
 
 
+
+  Future<void> _pickGiftImage() async {
+    try {
+      final pickedFile = await ImagePicker().pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 80, // Compress the image
+      );
+
+      if (pickedFile != null) {
+        final imageBytes = await pickedFile.readAsBytes();
+        setState(() {
+          giftImageBytes = imageBytes;
+        });
+      }
+    } catch (e) {
+      _showSnackBar("Failed to pick image: $e");
+    }
+  }
 
   Widget _buildEnhancedTextField({
     required String label,
@@ -344,10 +417,9 @@ class _GiftDetailsAndEditScreenState extends State<GiftDetailsAndEditScreen> {
         ),
       ),
       validator: (value) =>
-      value == null || value.isEmpty ? 'Please enter $label' : null,
+          value == null || value.isEmpty ? 'Please enter $label' : null,
     );
   }
-
 
   Widget _buildSaveButton() {
     return SizedBox(
@@ -370,8 +442,6 @@ class _GiftDetailsAndEditScreenState extends State<GiftDetailsAndEditScreen> {
     );
   }
 
-
-
   Widget _buildPledgeButton() {
     return SizedBox(
       width: double.infinity,
@@ -392,6 +462,4 @@ class _GiftDetailsAndEditScreenState extends State<GiftDetailsAndEditScreen> {
       ),
     );
   }
-
-
 }
