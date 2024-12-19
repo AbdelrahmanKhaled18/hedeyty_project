@@ -1,10 +1,13 @@
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:crypto/crypto.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:yarb/screens/tabs.dart';
 import '../../database/database_helper.dart';
+import 'package:image/image.dart' as img;
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -23,6 +26,8 @@ class ProfileScreenState extends State<ProfileScreen> {
   bool isEditing = false;
   bool isLoading = true;
   List<Map<String, dynamic>> pledgedGifts = [];
+  String? profileImageBase64; // Holds the base64 string of the image
+  Uint8List? profileImageBytes;
 
   @override
   void initState() {
@@ -36,6 +41,7 @@ class ProfileScreenState extends State<ProfileScreen> {
       final user = _auth.currentUser;
       if (user == null) return;
 
+      // Fetch user data from Firestore
       final userSnapshot = await FirebaseFirestore.instance
           .collection('users')
           .doc(user.uid)
@@ -43,12 +49,33 @@ class ProfileScreenState extends State<ProfileScreen> {
 
       if (userSnapshot.exists) {
         final data = userSnapshot.data()!;
+
         setState(() {
           nameController.text = data['name'] ?? '';
           emailController.text = data['email'] ?? '';
           phoneController.text = data['phone'] ?? '';
+
+          // Decode and decompress the profile image
+          if (data['profile_image'] != null &&
+              data['profile_image'].isNotEmpty) {
+            final compressedBytes = base64Decode(data['profile_image']);
+
+            // Decode the image using the image package
+            img.Image? decompressedImage = img.decodeJpg(compressedBytes);
+
+            if (decompressedImage != null) {
+              profileImageBytes = Uint8List.fromList(
+                img.encodePng(decompressedImage),
+              );
+            } else {
+              profileImageBytes = null; // Handle image decoding failure
+            }
+          } else {
+            profileImageBytes = null;
+          }
         });
 
+        // Sync data with local SQLite database
         await _syncLocalDb(user.uid, data);
       } else {
         throw Exception("User not found in Firestore.");
@@ -62,25 +89,29 @@ class ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _syncLocalDb(String userId, Map<String, dynamic> data) async {
     final db = await DatabaseHelper().database;
+
+    // Prepare updated user data
+    final updatedData = {
+      'firestore_id': userId,
+      'name': data['name'],
+      'email': data['email'],
+      'phone': data['phone'],
+      'profile_image': data['profile_image'] ?? '', // Sync profile image
+    };
+
+    // Check if the user already exists in SQLite
     final existing = await db.query(
       'users',
       where: 'firestore_id = ?',
       whereArgs: [userId],
     );
 
-    final updatedData = {
-      'firestore_id': userId,
-      'name': data['name'],
-      'email': data['email'],
-      'phone': data['phone'],
-    };
-
     if (existing.isEmpty) {
-      await db.insert('users', updatedData);
+      await db.insert('users', updatedData); // Insert if not exists
     } else {
       await db.update(
         'users',
-        updatedData,
+        updatedData, // Update if already exists
         where: 'firestore_id = ?',
         whereArgs: [userId],
       );
@@ -124,6 +155,7 @@ class ProfileScreenState extends State<ProfileScreen> {
           'description': data['description'] ?? 'No description provided',
           'price': data['price'] ?? 0.0,
           'pledged_by': pledgedByName,
+          'gift_image': data['gift_image'], // Include gift image
         });
       }
 
@@ -135,22 +167,46 @@ class ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+
   Future<void> _saveUserData() async {
     try {
       final user = _auth.currentUser;
       if (user == null) return;
 
+      // Convert and compress the image if it exists
+      String? compressedImageString;
+      if (profileImageBytes != null) {
+        // Decode the image using the image package
+        img.Image? originalImage = img.decodeImage(profileImageBytes!);
+
+        if (originalImage != null) {
+          // Compress the image
+          final compressedImageBytes = img.encodeJpg(
+            originalImage,
+            quality: 80, // Adjust quality (0-100)
+          );
+
+          // Convert to Base64 string
+          compressedImageString = base64Encode(compressedImageBytes);
+        }
+      }
+
+      // Prepare updated data
       final updatedData = {
         'name': nameController.text.trim(),
         'email': emailController.text.trim(),
         'phone': phoneController.text.trim(),
+        if (compressedImageString != null)
+          'profile_image': compressedImageString,
       };
 
+      // Update Firestore
       await FirebaseFirestore.instance
           .collection('users')
           .doc(user.uid)
           .update(updatedData);
 
+      // Update Local Database
       final db = await DatabaseHelper().database;
       await db.update(
         'users',
@@ -159,6 +215,7 @@ class ProfileScreenState extends State<ProfileScreen> {
         whereArgs: [user.uid],
       );
 
+      // Handle password update
       if (passwordController.text.isNotEmpty) {
         final hashedPassword = _hashPassword(passwordController.text.trim());
 
@@ -218,14 +275,33 @@ class ProfileScreenState extends State<ProfileScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Center(
-                    child: CircleAvatar(
-                      radius: 60,
-                      backgroundColor: Colors.teal.shade100,
-                      child: const Icon(
-                        Icons.person,
-                        size: 60,
-                        color: Colors.teal,
-                      ),
+                    child: Stack(
+                      alignment: Alignment.bottomRight,
+                      children: [
+                        CircleAvatar(
+                          radius: 60,
+                          backgroundColor: Colors.teal.shade100,
+                          backgroundImage: profileImageBytes != null
+                              ? MemoryImage(profileImageBytes!)
+                              : null,
+                          child: profileImageBytes == null
+                              ? const Icon(
+                                  Icons.person,
+                                  size: 60,
+                                  color: Colors.teal,
+                                )
+                              : null,
+                        ),
+                        if (isEditing)
+                          IconButton(
+                            icon: const Icon(
+                              Icons.camera_alt,
+                              color: Colors.white,
+                            ),
+                            onPressed: _pickImage,
+                            tooltip: "Upload Image",
+                          ),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 20),
@@ -322,6 +398,17 @@ class ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildGiftCard(Map<String, dynamic> gift) {
+    Uint8List? giftImageBytes;
+
+    // Decode the gift image if available
+    if (gift['gift_image'] != null && gift['gift_image'].isNotEmpty) {
+      try {
+        giftImageBytes = base64Decode(gift['gift_image']);
+      } catch (e) {
+        debugPrint("Error decoding gift image: $e");
+      }
+    }
+
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8),
       shape: RoundedRectangleBorder(
@@ -331,15 +418,11 @@ class ProfileScreenState extends State<ProfileScreen> {
       child: ListTile(
         contentPadding: const EdgeInsets.all(16),
         leading: CircleAvatar(
+          radius: 30,
           backgroundColor: Colors.teal.shade100,
-          child: Text(
-            gift['name'].substring(0, 1).toUpperCase(),
-            style: const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Colors.teal,
-            ),
-          ),
+          backgroundImage: giftImageBytes != null
+              ? MemoryImage(giftImageBytes)
+              : const AssetImage('assets/default_gift.jpg') as ImageProvider,
         ),
         title: Text(
           gift['name'],
@@ -351,19 +434,57 @@ class ProfileScreenState extends State<ProfileScreen> {
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text("Category: ${gift['category']}",
-                style: const TextStyle(fontSize: 14, color: Colors.grey)),
-            Text("Price: \$${gift['price'].toStringAsFixed(2)}",
-                style: const TextStyle(fontSize: 14, color: Colors.grey)),
-            Text("Pledged By: ${gift['pledged_by']}",
-                style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.teal)),
+            Text(
+              "Category: ${gift['category']}",
+              style: const TextStyle(fontSize: 14, color: Colors.grey),
+            ),
+            Text(
+              "Price: \$${gift['price'].toStringAsFixed(2)}",
+              style: const TextStyle(fontSize: 14, color: Colors.grey),
+            ),
+            Text(
+              "Pledged By: ${gift['pledged_by']}",
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: Colors.teal,
+              ),
+            ),
           ],
         ),
       ),
     );
+  }
+
+
+  Future<void> _pickImage() async {
+    try {
+      final pickedFile =
+          await ImagePicker().pickImage(source: ImageSource.gallery);
+
+      if (pickedFile != null) {
+        final originalImageBytes = await pickedFile.readAsBytes();
+
+        // Decode the image using the image package
+        img.Image? originalImage = img.decodeImage(originalImageBytes);
+
+        if (originalImage != null) {
+          // Compress the image (Resize and adjust quality)
+          final compressedImage = img.encodeJpg(
+            originalImage,
+            quality: 80, // Adjust quality from 0 to 100
+          );
+
+          setState(() {
+            profileImageBytes = Uint8List.fromList(compressedImage);
+            profileImageBase64 =
+                base64Encode(compressedImage); // Store compressed Base64
+          });
+        }
+      }
+    } catch (e) {
+      _showSnackBar("Image upload failed: $e");
+    }
   }
 
   Widget _buildOptionTile({

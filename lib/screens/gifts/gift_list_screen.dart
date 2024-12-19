@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../database/database_helper.dart';
@@ -104,7 +106,6 @@ class _GiftListScreenState extends State<GiftListScreen> {
               );
             }
 
-
             final sortedGifts = _sortGifts(snapshot.data!.docs);
 
             return ListView.builder(
@@ -141,9 +142,24 @@ class _GiftListScreenState extends State<GiftListScreen> {
     final giftData = gift.data() as Map<String, dynamic>;
     final friendFirestoreId = giftData['event_id'] ?? '';
 
+    // Decode the gift image if available
+    Uint8List? giftImageBytes;
+    if (giftData['gift_image'] != null && giftData['gift_image'].isNotEmpty) {
+      try {
+        giftImageBytes = base64Decode(giftData['gift_image']);
+      } catch (e) {
+        debugPrint('Error decoding gift image: $e');
+      }
+    }
+
+    // Determine card color based on pledge status
+    final isPledged = (giftData['status'] ?? 'available') == 'pledged';
+    final cardColor = isPledged ? Colors.orange.shade100 : Colors.teal.shade50;
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Card(
+        color: cardColor, // Apply the color based on pledge status
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(15),
         ),
@@ -155,7 +171,7 @@ class _GiftListScreenState extends State<GiftListScreen> {
               MaterialPageRoute(
                 builder: (context) => GiftDetailsAndEditScreen(
                   giftId: gift.id,
-                  canEdit: widget.canEdit,
+                  canEdit: widget.canEdit && !isPledged,
                   friendFirestoreId: friendFirestoreId,
                 ),
               ),
@@ -166,17 +182,13 @@ class _GiftListScreenState extends State<GiftListScreen> {
             leading: CircleAvatar(
               radius: 30,
               backgroundColor: Colors.teal.shade100,
-              child: Text(
-                gift['name'].substring(0, 1).toUpperCase(),
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.teal,
-                ),
-              ),
+              backgroundImage: giftImageBytes != null
+                  ? MemoryImage(giftImageBytes)
+                  : const AssetImage('assets/default_gift_image.jpg')
+                      as ImageProvider,
             ),
             title: Text(
-              gift['name'],
+              giftData['name'],
               style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -193,22 +205,22 @@ class _GiftListScreenState extends State<GiftListScreen> {
                   _buildInfoRow(
                     icon: Icons.category,
                     label: "Category",
-                    value: gift['category'],
+                    value: giftData['category'] ?? 'N/A',
                   ),
                   _buildInfoRow(
                     icon: Icons.monetization_on,
                     label: "Price",
-                    value: "\$${gift['price'].toStringAsFixed(2)}",
+                    value: "\$${(giftData['price'] ?? 0.0).toStringAsFixed(2)}",
                   ),
                   _buildInfoRow(
                     icon: Icons.check_circle_outline,
                     label: "Status",
-                    value: gift['status'],
+                    value: giftData['status'] ?? 'N/A',
                   ),
                 ],
               ),
             ),
-            trailing: widget.canEdit
+            trailing: widget.canEdit && !isPledged
                 ? Wrap(
                     spacing: 8.0,
                     children: [

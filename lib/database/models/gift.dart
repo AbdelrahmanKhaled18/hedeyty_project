@@ -9,6 +9,7 @@ class Gift {
   final String firestoreId;
   final int? pledgedBy; // Foreign Key from 'users' table
   final int? pledgedTo; // Foreign Key from 'users' table
+  final String? giftImage; // New field for storing image as Base64 string
 
   Gift({
     this.id,
@@ -21,6 +22,7 @@ class Gift {
     required this.firestoreId,
     this.pledgedBy,
     this.pledgedTo,
+    this.giftImage, // Initialize the new image field
   });
 
   /// Convert a Gift into a Map for SQLite insertion
@@ -36,6 +38,7 @@ class Gift {
       'firestore_id': firestoreId,
       'pledged_by': pledgedBy,
       'pledged_to': pledgedTo,
+      'gift_image': giftImage, // Include the image in the map
     };
   }
 
@@ -52,6 +55,7 @@ class Gift {
       firestoreId: map['firestore_id'],
       pledgedBy: map['pledged_by'],
       pledgedTo: map['pledged_to'],
+      giftImage: map['gift_image'], // Extract the image from the map
     );
   }
 }

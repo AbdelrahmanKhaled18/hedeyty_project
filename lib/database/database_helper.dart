@@ -35,15 +35,16 @@ class DatabaseHelper {
     // Create Users Table
     await db.execute('''
     CREATE TABLE users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT,
-      email TEXT UNIQUE,
-      phone TEXT,
-      password TEXT,
-      preferences TEXT,
-      firestore_id TEXT UNIQUE
-    )
-  ''');
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT,
+    email TEXT UNIQUE,
+    phone TEXT,
+    password TEXT,
+    preferences TEXT,
+    firestore_id TEXT UNIQUE,
+    profile_image TEXT
+  )
+''');
 
     // Create Events Table
     await db.execute('''
@@ -61,7 +62,7 @@ class DatabaseHelper {
 
     // Create Gifts Table
     await db.execute('''
-  CREATE TABLE gifts (
+    CREATE TABLE gifts (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
     description TEXT,
@@ -72,11 +73,13 @@ class DatabaseHelper {
     firestore_id TEXT UNIQUE NOT NULL,
     pledged_by INTEGER,
     pledged_to INTEGER,
+    gift_image TEXT,
     FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE,
     FOREIGN KEY (pledged_by) REFERENCES users(id) ON DELETE SET NULL,
     FOREIGN KEY (pledged_to) REFERENCES users(id) ON DELETE SET NULL
   )
 ''');
+
 
     // Create Friends Table
     await db.execute('''
