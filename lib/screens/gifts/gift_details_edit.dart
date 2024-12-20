@@ -158,12 +158,11 @@ class _GiftDetailsAndEditScreenState extends State<GiftDetailsAndEditScreen> {
       await _getFirestoreUserIdFromEvent(widget.friendFirestoreId);
       int pledgedToId = await _getLocalUserId(pledgedToFirestoreId);
 
-      // Fetch pledged by user's name
+      // Fetch pledgedBy user's name
       final pledgedBySnapshot = await FirebaseFirestore.instance
           .collection('users')
           .doc(pledgedByFirestoreId)
           .get();
-
       final pledgedByName = pledgedBySnapshot['name'] ?? 'Someone';
 
       // Convert the gift image to a Base64 string if available
@@ -196,21 +195,11 @@ class _GiftDetailsAndEditScreenState extends State<GiftDetailsAndEditScreen> {
 
       await GiftDAO().updateGift(pledgedGift);
 
-      // Fetch recipient's name
-      final recipientSnapshot = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(pledgedToFirestoreId)
-          .get();
-
-      final recipientName = recipientSnapshot['name'] ?? 'Recipient';
-
-      // Send notification to the recipient
-      await NotificationService().showNotification(
-        id: pledgedToId,
-        title: "Congratulations $recipientName!",
-        body: "You’ve received a gift: ${_nameController.text} from $pledgedByName.",
+      await Notifications().sendPledgeNotification(
+        toUserId: pledgedToFirestoreId,
+        giftName: _nameController.text,
+        pledgedByName: pledgedByName,
       );
-
       _showSnackBar('Gift pledged successfully');
       Navigator.pop(context);
     } catch (e) {
@@ -219,8 +208,6 @@ class _GiftDetailsAndEditScreenState extends State<GiftDetailsAndEditScreen> {
       setState(() => _isLoading = false);
     }
   }
-
-
 
 
   Future<int> _getLocalUserId(String firestoreUserId) async {
