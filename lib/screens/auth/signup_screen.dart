@@ -107,6 +107,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: Key("signupScreen"),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 60),
         child: SingleChildScrollView(
@@ -133,6 +134,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 ),
                 const SizedBox(height: 20),
                 _buildTextField(
+                  key:"nameField",
                   controller: _nameController,
                   labelText: 'Full Name',
                   hintText: 'Enter your name',
@@ -141,6 +143,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 ),
                 const SizedBox(height: 20),
                 _buildTextField(
+                  key: "emailField",
                   controller: _emailController,
                   labelText: 'Email',
                   hintText: 'Enter your email',
@@ -149,6 +152,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 ),
                 const SizedBox(height: 20),
                 _buildTextField(
+                  key: "passwordField",
                   controller: _passwordController,
                   labelText: 'Password',
                   hintText: 'Enter your password',
@@ -162,6 +166,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   child: SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
+                      key: Key("signupButtonAction"),
                       onPressed: _isLoading ? null : _signUp,
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 15),
@@ -210,6 +215,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 
   Widget _buildTextField({
+    required String key,
     required TextEditingController controller,
     required String labelText,
     required String hintText,
@@ -217,6 +223,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     required bool isObscured,
   }) {
     return TextFormField(
+      key:Key(key),
       controller: controller,
       obscureText: isObscured,
       decoration: InputDecoration(

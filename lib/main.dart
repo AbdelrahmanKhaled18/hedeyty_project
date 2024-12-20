@@ -3,17 +3,8 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:yarb/screens/splash_screen.dart';
-
 import 'notifications.dart';
 
-final theme = ThemeData(
-  useMaterial3: true,
-  colorScheme: ColorScheme.fromSeed(
-    brightness: Brightness.dark,
-    seedColor: const Color.fromARGB(255, 131, 57, 0),
-  ),
-  textTheme: GoogleFonts.latoTextTheme(),
-);
 
 // Background message handler
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -30,18 +21,26 @@ Future<void> main() async {
 
   // Request notification permissions
   await messaging.requestPermission(
-      alert: true,
-      badge: true,
-      sound: true,
-      announcement: true,
-      carPlay: true,
-      criticalAlert: true,
-      provisional: true);
+    alert: true,
+    badge: true,
+    sound: true,
+    announcement: true,
+    carPlay: true,
+    criticalAlert: true,
+    provisional: true,
+  );
 
   // Initialize FCM background messaging
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
-  runApp(const MaterialApp(
-    home: Scaffold(body: SplashScreen()),
-  ));
+  runApp(const app());
+}
+
+
+class app extends StatelessWidget {
+  const app({super.key});
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(home:const SplashScreen());
+  }
 }

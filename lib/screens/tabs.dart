@@ -17,9 +17,9 @@ class _TabsScreenState extends State<TabsScreen> {
   int _selectedPageIndex = 0;
 
   final List<Widget> pages = [
-    const HomeScreen(),
-    const EventListScreen(),
-    const PledgedGiftsScreen(),
+    const HomeScreen(key: Key('homePage')),
+    const EventListScreen(key: Key('eventListPage')),
+    const PledgedGiftsScreen(key: Key('pledgedGiftsPage')),
   ];
 
   final List<String> titles = [
@@ -43,6 +43,7 @@ class _TabsScreenState extends State<TabsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: const Key('tabsScreen'),
       appBar: AppBar(
         title: Text(
           titles[_selectedPageIndex],
@@ -60,6 +61,7 @@ class _TabsScreenState extends State<TabsScreen> {
         child: pages[_selectedPageIndex],
       ),
       bottomNavigationBar: BottomNavigationBar(
+        key: const Key("bottomNavigationBar"),
         currentIndex: _selectedPageIndex,
         onTap: _selectPage,
         selectedItemColor: Colors.teal.shade800,
@@ -69,14 +71,17 @@ class _TabsScreenState extends State<TabsScreen> {
         type: BottomNavigationBarType.fixed,
         items: const [
           BottomNavigationBarItem(
+            key: Key("HomeTab"),
             icon: Icon(Icons.home_outlined),
             label: 'Home',
           ),
           BottomNavigationBarItem(
+            key: Key("EventsTab"),
             icon: Icon(Icons.event_outlined),
             label: 'Events',
           ),
           BottomNavigationBarItem(
+            key: Key("PledgedGiftsTab"),
             icon: Icon(Icons.card_giftcard_outlined),
             label: 'Pledged Gifts',
           ),

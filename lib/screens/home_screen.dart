@@ -268,6 +268,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
       // Floating Action Button
       floatingActionButton: FloatingActionButton.extended(
+        key: const Key('createEventButton'),
         onPressed: () {
           Navigator.push(
             context,

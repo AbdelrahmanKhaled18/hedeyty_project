@@ -144,6 +144,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
+                    key: const Key("loginButton"),
                     onPressed: _isLoading
                         ? null
                         : () {

@@ -1,5 +1,4 @@
 import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
@@ -8,6 +7,7 @@ import '../../database/DAO/gift_dao.dart';
 import '../../database/models/gift.dart';
 import '../../database/database_helper.dart';
 import 'dart:typed_data';
+
 class GiftCreationScreen extends StatefulWidget {
   final String firestoreEventId;
 
@@ -49,17 +49,16 @@ class _GiftCreationScreenState extends State<GiftCreationScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // Convert image to Base64 if available
       String? imageString;
       if (giftImageBytes != null) {
-        final compressedImageBytes = await FlutterImageCompress.compressWithList(
+        final compressedImageBytes =
+        await FlutterImageCompress.compressWithList(
           giftImageBytes!,
-          quality: 70, // Adjust quality for smaller size
+          quality: 70,
         );
         imageString = base64Encode(compressedImageBytes);
       }
 
-      // Add gift to Firestore
       DocumentReference firestoreGiftRef =
       await FirebaseFirestore.instance.collection('gifts').add({
         'event_id': widget.firestoreEventId,
@@ -68,15 +67,11 @@ class _GiftCreationScreenState extends State<GiftCreationScreen> {
         'category': _categoryController.text.trim(),
         'price': double.tryParse(_priceController.text.trim()) ?? 0.0,
         'status': 'available',
-        'pledged_by': null,
-        'pledged_to': null,
         if (imageString != null) 'gift_image': imageString,
       });
 
-      // Get corresponding local event ID
       int localEventId = await _getLocalEventId(widget.firestoreEventId);
 
-      // Create and insert gift into the local SQLite database
       Gift newGift = Gift(
         name: _nameController.text.trim(),
         description: _descriptionController.text.trim(),
@@ -85,9 +80,7 @@ class _GiftCreationScreenState extends State<GiftCreationScreen> {
         status: 'available',
         eventId: localEventId,
         firestoreId: firestoreGiftRef.id,
-        pledgedBy: null,
-        pledgedTo: null,
-        giftImage: imageString, // Save the image locally
+        giftImage: imageString,
       );
 
       await GiftDAO().insertGift(newGift);
@@ -96,7 +89,7 @@ class _GiftCreationScreenState extends State<GiftCreationScreen> {
         const SnackBar(content: Text('Gift created successfully!')),
       );
 
-      Navigator.pop(context); // Return to GiftListScreen
+      Navigator.pop(context);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error creating gift: $e')),
@@ -106,10 +99,10 @@ class _GiftCreationScreenState extends State<GiftCreationScreen> {
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: const Key('giftCreationPage'),
       appBar: AppBar(
         title: const Text("Add Gift"),
         centerTitle: true,
@@ -123,9 +116,9 @@ class _GiftCreationScreenState extends State<GiftCreationScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Upload Image Section
                 Center(
                   child: GestureDetector(
+                    key: const Key('giftImagePicker'),
                     onTap: _pickImage,
                     child: CircleAvatar(
                       radius: 60,
@@ -137,7 +130,8 @@ class _GiftCreationScreenState extends State<GiftCreationScreen> {
                           ? Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: const [
-                          Icon(Icons.camera_alt, size: 40, color: Colors.teal),
+                          Icon(Icons.camera_alt,
+                              size: 40, color: Colors.teal),
                           SizedBox(height: 8),
                           Text(
                             "Upload Image",
@@ -155,6 +149,7 @@ class _GiftCreationScreenState extends State<GiftCreationScreen> {
                 ),
                 const SizedBox(height: 20),
                 _buildEnhancedTextField(
+                  key: const Key('giftNameField'),
                   controller: _nameController,
                   label: "Gift Name",
                   hintText: "Enter the gift name",
@@ -165,6 +160,7 @@ class _GiftCreationScreenState extends State<GiftCreationScreen> {
                 ),
                 const SizedBox(height: 16),
                 _buildEnhancedTextField(
+                  key: const Key('giftCategoryField'),
                   controller: _categoryController,
                   label: "Category",
                   hintText: "Enter the gift category",
@@ -175,6 +171,7 @@ class _GiftCreationScreenState extends State<GiftCreationScreen> {
                 ),
                 const SizedBox(height: 16),
                 _buildEnhancedTextField(
+                  key: const Key('giftDescriptionField'),
                   controller: _descriptionController,
                   label: "Description (Optional)",
                   hintText: "Describe the gift (optional)",
@@ -183,6 +180,7 @@ class _GiftCreationScreenState extends State<GiftCreationScreen> {
                 ),
                 const SizedBox(height: 16),
                 _buildEnhancedTextField(
+                  key: const Key('giftPriceField'),
                   controller: _priceController,
                   label: "Price (Optional)",
                   hintText: "Enter the price",
@@ -193,6 +191,7 @@ class _GiftCreationScreenState extends State<GiftCreationScreen> {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
+                    key: const Key('giftSubmitButton'),
                     onPressed: _isLoading ? null : _createGift,
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
@@ -203,10 +202,9 @@ class _GiftCreationScreenState extends State<GiftCreationScreen> {
                     ),
                     child: _isLoading
                         ? const CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        Colors.white,
-                      ),
-                    )
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          Colors.white,
+                        ))
                         : const Text(
                       'Add Gift',
                       style: TextStyle(
@@ -225,15 +223,15 @@ class _GiftCreationScreenState extends State<GiftCreationScreen> {
     );
   }
 
-
   Future<void> _pickImage() async {
     try {
-      final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
+      final pickedFile =
+      await ImagePicker().pickImage(source: ImageSource.gallery);
 
       if (pickedFile != null) {
         final imageBytes = await pickedFile.readAsBytes();
         setState(() {
-          giftImageBytes = imageBytes; // Store image bytes
+          giftImageBytes = imageBytes;
         });
       }
     } catch (e) {
@@ -243,9 +241,8 @@ class _GiftCreationScreenState extends State<GiftCreationScreen> {
     }
   }
 
-
-
   Widget _buildEnhancedTextField({
+    required Key key,
     required TextEditingController controller,
     required String label,
     required String hintText,
@@ -255,6 +252,7 @@ class _GiftCreationScreenState extends State<GiftCreationScreen> {
     int maxLines = 1,
   }) {
     return TextFormField(
+      key: key,
       controller: controller,
       keyboardType: keyboardType,
       maxLines: maxLines,
@@ -264,18 +262,6 @@ class _GiftCreationScreenState extends State<GiftCreationScreen> {
         prefixIcon: Icon(icon, color: Colors.teal),
         filled: true,
         fillColor: Colors.grey.shade100,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(30),
-          borderSide: BorderSide.none,
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(30),
-          borderSide: const BorderSide(color: Colors.teal, width: 2),
-        ),
-        contentPadding: const EdgeInsets.symmetric(
-          vertical: 16,
-          horizontal: 20,
-        ),
       ),
       validator: validator,
     );

@@ -73,6 +73,7 @@ class _GiftListScreenState extends State<GiftListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: const Key("giftListPage"),
       appBar: AppBar(
         title: Text("${widget.eventName}'s Gift List"),
         centerTitle: true,
@@ -120,6 +121,7 @@ class _GiftListScreenState extends State<GiftListScreen> {
       ),
       floatingActionButton: widget.canEdit
           ? FloatingActionButton.extended(
+              key: const Key("addGiftButton"),
               onPressed: () {
                 Navigator.push(
                   context,
@@ -184,7 +186,7 @@ class _GiftListScreenState extends State<GiftListScreen> {
               backgroundColor: Colors.teal.shade100,
               backgroundImage: giftImageBytes != null
                   ? MemoryImage(giftImageBytes)
-                  : const AssetImage('assets/default_gift_image.jpg')
+                  : const AssetImage('assets/avatar.jpg')
                       as ImageProvider,
             ),
             title: Text(

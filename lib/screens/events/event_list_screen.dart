@@ -103,6 +103,7 @@ class _EventListScreenState extends State<EventListScreen> {
                   ),
                   elevation: 5,
                   child: InkWell(
+                    key: Key('eventCard_BirthdayParty'),
                     onTap: () => _navigateToGiftList(
                       event.id,
                       event['name'],

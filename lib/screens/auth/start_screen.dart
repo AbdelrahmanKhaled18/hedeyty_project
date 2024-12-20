@@ -8,6 +8,7 @@ class StartScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: const Key('startScreen'),
       body: Padding(
         padding: const EdgeInsets.all(20.0),
         child: Column(
@@ -74,6 +75,7 @@ class StartScreen extends StatelessWidget {
               duration: const Duration(milliseconds: 600),
               curve: Curves.easeInOut,
               child: OutlinedButton(
+                key: const Key("SignupButton"),
                 onPressed: () {
                   Navigator.push(
                     context,
