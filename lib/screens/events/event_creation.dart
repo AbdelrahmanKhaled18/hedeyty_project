@@ -20,7 +20,6 @@ class _EventCreationPageState extends State<EventCreationPage> {
   final TextEditingController _dateController = TextEditingController();
 
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-
   bool _isLoading = false;
 
   Future<void> _createEvent() async {
@@ -35,9 +34,7 @@ class _EventCreationPageState extends State<EventCreationPage> {
       int localUserId = await _getLocalUserId(firestoreUserId);
 
       // Save to Firestore and get the document ID
-      String firestoreId = await _saveEventToFirestore(
-        firestoreUserId: firestoreUserId,
-      );
+      String firestoreId = await _saveEventToFirestore(firestoreUserId: firestoreUserId);
 
       // Create event model with Firestore ID
       Event newEvent = Event(
@@ -66,9 +63,7 @@ class _EventCreationPageState extends State<EventCreationPage> {
     }
   }
 
-  Future<String> _saveEventToFirestore({
-    required String firestoreUserId,
-  }) async {
+  Future<String> _saveEventToFirestore({required String firestoreUserId}) async {
     DocumentReference docRef = await FirebaseFirestore.instance.collection('events').add({
       'user_id': firestoreUserId,
       'name': _nameController.text,
@@ -102,6 +97,7 @@ class _EventCreationPageState extends State<EventCreationPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: const Key("eventCreationPage"),
       appBar: AppBar(
         title: const Text('Create Event'),
         centerTitle: true,
@@ -117,6 +113,7 @@ class _EventCreationPageState extends State<EventCreationPage> {
               children: [
                 // Event Name Field
                 _buildTextField(
+                  key: const Key("eventNameField"),
                   controller: _nameController,
                   labelText: 'Event Name',
                   hintText: 'Enter event name',
@@ -132,6 +129,7 @@ class _EventCreationPageState extends State<EventCreationPage> {
 
                 // Event Date Field
                 _buildTextField(
+                  key: const Key("eventDateField"),
                   controller: _dateController,
                   labelText: 'Event Date',
                   hintText: 'Select event date',
@@ -160,6 +158,7 @@ class _EventCreationPageState extends State<EventCreationPage> {
 
                 // Location Field (Optional)
                 _buildTextField(
+                  key: const Key("eventLocationField"),
                   controller: _locationController,
                   labelText: 'Location (Optional)',
                   hintText: 'Enter location',
@@ -169,6 +168,7 @@ class _EventCreationPageState extends State<EventCreationPage> {
 
                 // Description Field (Optional)
                 _buildTextField(
+                  key: const Key("eventDescriptionField"),
                   controller: _descriptionController,
                   labelText: 'Description (Optional)',
                   hintText: 'Enter description',
@@ -181,6 +181,7 @@ class _EventCreationPageState extends State<EventCreationPage> {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
+                    key: const Key("eventSubmitButton"),
                     onPressed: _isLoading ? null : _createEvent,
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
@@ -211,8 +212,9 @@ class _EventCreationPageState extends State<EventCreationPage> {
     );
   }
 
-// Custom Text Field Widget
+  // Custom Text Field Widget
   Widget _buildTextField({
+    required Key key,
     required TextEditingController controller,
     required String labelText,
     required String hintText,
@@ -223,6 +225,7 @@ class _EventCreationPageState extends State<EventCreationPage> {
     String? Function(String?)? validator,
   }) {
     return TextFormField(
+      key: key,
       controller: controller,
       readOnly: readOnly,
       maxLines: maxLines,
@@ -248,5 +251,4 @@ class _EventCreationPageState extends State<EventCreationPage> {
       validator: validator,
     );
   }
-
 }
