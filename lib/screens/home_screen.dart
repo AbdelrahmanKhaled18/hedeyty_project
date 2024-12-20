@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../database/DAO/friend_dao.dart';
@@ -138,14 +139,12 @@ class _HomeScreenState extends State<HomeScreen> {
       await FirebaseFirestore.instance.collection('friends').add({
         'user_ids': [userId, friendFirestoreId],
       });
-
       // Add to Local Database
       int localUserId = await getLocalIdForFirestoreId(userId);
       int localFriendId = await getLocalIdForFirestoreId(friendFirestoreId);
 
       Friend newFriend = Friend(userId: localUserId, friendId: localFriendId);
       await FriendDAO().insertFriend(newFriend);
-
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Friend added successfully')),
       );
@@ -200,70 +199,70 @@ class _HomeScreenState extends State<HomeScreen> {
           _isLoading
               ? const Center(child: CircularProgressIndicator())
               : Expanded(
-                  child: _searchController.text.isEmpty && friendsList.isEmpty
-                      ? const Center(
-                          child: Text(
-                            'No friends found',
-                            style: TextStyle(
-                              fontSize: 18,
-                              color: Colors.grey,
-                            ),
-                          ),
-                        )
-                      : ListView.builder(
-                          itemCount: _searchController.text.isEmpty
-                              ? friendsList.length
-                              : searchResults.length,
-                          itemBuilder: (context, index) {
-                            var user = _searchController.text.isEmpty
-                                ? friendsList[index]
-                                : searchResults[index];
-                            bool isFriend = friendsList
-                                .any((friend) => friend['id'] == user['id']);
-
-                            return FriendListItem(
-                              friendName: user['name'],
-                              friendFirestoreId: user['id'],
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  PageRouteBuilder(
-                                    transitionDuration:
-                                        const Duration(milliseconds: 500),
-                                    pageBuilder: (context, animation,
-                                            secondaryAnimation) =>
-                                        EventListScreen(
-                                      friendId: user['id'],
-                                      friendName: user['name'],
-                                    ),
-                                    transitionsBuilder: (context, animation,
-                                        secondaryAnimation, child) {
-                                      const begin =
-                                          Offset(1.0, 0.0); // Slide from right
-                                      const end = Offset.zero; // Final position
-                                      const curve = Curves.easeInOut;
-
-                                      var tween = Tween(begin: begin, end: end)
-                                          .chain(CurveTween(curve: curve));
-                                      var offsetAnimation =
-                                          animation.drive(tween);
-
-                                      return SlideTransition(
-                                        position: offsetAnimation,
-                                        child: child,
-                                      );
-                                    },
-                                  ),
-                                );
-                              },
-                              onAddFriend: isFriend
-                                  ? null
-                                  : () => _addFriend(user['id']),
-                              isFriend: isFriend,
-                            );
-                          },
-                        ),
+            child: _searchController.text.isEmpty && friendsList.isEmpty
+                ? const Center(
+              child: Text(
+                'No friends found',
+                style: TextStyle(
+                  fontSize: 18,
+                  color: Colors.grey,
                 ),
+              ),
+            )
+                : ListView.builder(
+              itemCount: _searchController.text.isEmpty
+                  ? friendsList.length
+                  : searchResults.length,
+              itemBuilder: (context, index) {
+                var user = _searchController.text.isEmpty
+                    ? friendsList[index]
+                    : searchResults[index];
+                bool isFriend = friendsList
+                    .any((friend) => friend['id'] == user['id']);
+
+                return FriendListItem(
+                  friendName: user['name'],
+                  friendFirestoreId: user['id'],
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      PageRouteBuilder(
+                        transitionDuration:
+                        const Duration(milliseconds: 500),
+                        pageBuilder: (context, animation,
+                            secondaryAnimation) =>
+                            EventListScreen(
+                              friendId: user['id'],
+                              friendName: user['name'],
+                            ),
+                        transitionsBuilder: (context, animation,
+                            secondaryAnimation, child) {
+                          const begin =
+                          Offset(1.0, 0.0); // Slide from right
+                          const end = Offset.zero; // Final position
+                          const curve = Curves.easeInOut;
+
+                          var tween = Tween(begin: begin, end: end)
+                              .chain(CurveTween(curve: curve));
+                          var offsetAnimation =
+                          animation.drive(tween);
+
+                          return SlideTransition(
+                            position: offsetAnimation,
+                            child: child,
+                          );
+                        },
+                      ),
+                    );
+                  },
+                  onAddFriend: isFriend
+                      ? null
+                      : () => _addFriend(user['id']),
+                  isFriend: isFriend,
+                );
+              },
+            ),
+          ),
         ],
       ),
 

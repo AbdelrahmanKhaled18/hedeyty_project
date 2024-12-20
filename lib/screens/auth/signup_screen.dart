@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:crypto/crypto.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -33,7 +34,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
     try {
       UserCredential userCredential =
-          await _auth.createUserWithEmailAndPassword(
+      await _auth.createUserWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
@@ -42,7 +43,19 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
       final hashedPassword = _hashPassword(_passwordController.text.trim());
 
-      await _saveUserDataToFirestore(userCredential.user, hashedPassword);
+      // Retrieve the FCM token
+      String? fcmToken = await FirebaseMessaging.instance.getToken();
+
+      // Save user data including FCM token
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userCredential.user!.uid)
+          .set({
+        'name': _nameController.text.trim(),
+        'email': _emailController.text.trim(),
+        'hashed_password': hashedPassword,
+        'fcm_token': fcmToken,
+      });
 
       UserModel localUser = UserModel(
         name: _nameController.text.trim(),
@@ -65,6 +78,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       });
     }
   }
+
 
   String _hashPassword(String password) {
     final bytes = utf8.encode(password);
