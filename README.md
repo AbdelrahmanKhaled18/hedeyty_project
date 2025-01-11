@@ -1,97 +1,82 @@
-# Hedieaty Project
+# Hedieaty
 
-## Overview
-
-Hedieaty is a Flutter-based application designed to help users manage events and gifts efficiently. The app follows the MVC (Model-View-Controller) pattern to ensure modularity and maintainability. It integrates with Firebase for data storage and real-time updates.
+Hedieaty is a Flutter-based mobile application designed to make every gift special. This project includes features such as user sign-up, event creation, and gift management.
 
 ## Features
 
-- **User Authentication**: Users can sign up and sign in to the app.
-- **Event Management**: Users can create, view, edit, and delete events.
-- **Gift Management**: Users can create, view, edit, and delete gifts associated with events.
-- **Sorting and Filtering**: Users can sort and filter gifts based on various criteria.
-- **Firebase Integration**: The app uses Firebase for data storage, authentication, and real-time updates.
-
-## Project Structure
-
-The project is organized into the following main directories:
-
-- `lib/models`: Contains the data models.
-- `lib/controllers`: Contains the controllers that handle business logic.
-- `lib/screens`: Contains the UI components (views).
-- `lib/widgets`: Contains reusable UI components.
-- `integration_test`: Contains integration tests for end-to-end testing.
-
-### Models
-
-Models represent the data and business logic of the application. For example, the `Gift` model defines the structure of a gift object.
-
-### Controllers
-
-Controllers handle the logic and data manipulation. For example, the `GiftController` manages fetching and deleting gifts from Firebase.
-
-### Views
-
-Views manage the UI and presentation logic. For example, the `GiftListScreen` displays a list of gifts and interacts with the `GiftController`.
+- **User Sign-Up and Authentication**: Users can sign up and log in to the app using their email and password.
+- **Event Creation and Management**: Users can create and manage events, including setting event details such as name, date, location, and description.
+- **Gift List and Gift Management**: Users can create and manage a list of gifts for each event, including gift details such as name, category, description, and price.
+- **Push Notifications using Firebase Cloud Messaging**: The app uses Firebase Cloud Messaging to send push notifications to users.
+- **Animated Splash Screen**: The app features an animated splash screen using Lottie animations.
 
 ## Getting Started
 
 ### Prerequisites
 
-- Flutter SDK
-- Dart SDK
-- Firebase account
+- **Flutter SDK**: [Install Flutter](https://flutter.dev/docs/get-started/install)
+- **Dart SDK**: Included with Flutter
+- **Android Studio or Visual Studio Code**: Recommended IDEs for Flutter development
+- **Firebase Account**: Required for Firebase services
 
 ### Installation
 
-1. **Clone the repository:**
+1. **Clone the repository**:
+   ```sh
+   git clone https://github.com/AbdelrahmanKhaled18/Hedieaty.git
+   cd Hedieaty
+   ```
 
-    ```sh
-    git clone https://github.com/AbdelrahmanKhaled18/hedieaty.git
-    cd hedieaty
-    ```
+2. **Install dependencies**:
+   ```sh
+   flutter pub get
+   ```
 
-2. **Install dependencies:**
+3. **Set up Firebase**:
+    - Follow the instructions to add Firebase to your Flutter app: [Add Firebase to your Flutter app](https://firebase.google.com/docs/flutter/setup)
+    - Place the `google-services.json` file in the `android/app` directory.
 
-    ```sh
-    flutter pub get
-    ```
+4. **Run the app**:
+   ```sh
+   flutter run
+   ```
 
-3. **Set up Firebase:**
+## Project Structure
 
-    - Follow the [Firebase setup guide](https://firebase.google.com/docs/flutter/setup) to add Firebase to your Flutter project.
-    - Update the `android/app/google-services.json` and `ios/Runner/GoogleService-Info.plist` files with your Firebase configuration.
+- `lib/`: Contains the main source code for the Flutter application.
+    - `main.dart`: Entry point of the application.
+    - `screens/`: Contains the UI screens of the application.
+        - `splash_screen.dart`: Displays the animated splash screen.
+        - `auth/`: Contains authentication-related screens.
+        - `home/`: Contains the home screen and related widgets.
+        - `event/`: Contains screens and widgets related to event creation and management.
+        - `gift/`: Contains screens and widgets related to gift creation and management.
+    - `widgets/`: Contains reusable widgets.
+    - `services/`: Contains services for Firebase and other backend integrations.
+- `integration_test/`: Contains integration tests for the application.
+- `assets/`: Contains images, animations, and other assets.
 
-4. **Run the app:**
-
-    ```sh
-    flutter run
-    ```
-
-## Usage
-
-### Running Tests
+## Running Tests
 
 To run the integration tests, use the following command:
-
 ```sh
 flutter test integration_test
 ```
 
-### Project Structure
-
-- **Models**: Define the data structures and business logic.
-- **Controllers**: Handle the logic and data manipulation.
-- **Views**: Manage the UI and presentation logic.
-
 ## Contributing
 
-Contributions are welcome! Please follow these steps:
+Contributions are welcome! Please fork the repository and create a pull request with your changes.
 
-1. Fork the repository.
-2. Create a new branch (`git checkout -b feature-branch`).
-3. Make your changes.
-4. Commit your changes (`git commit -m 'Add new feature'`).
-5. Push to the branch (`git push origin feature-branch`).
-6. Create a pull request.
+## License
 
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+
+## Acknowledgements
+
+- [Flutter](https://flutter.dev/)
+- [Firebase](https://firebase.google.com/)
+- [Lottie](https://lottiefiles.com/)
+- [Google Fonts](https://fonts.google.com/)
+
+For more information, please refer to the [online documentation](https://docs.flutter.dev/).
+```
