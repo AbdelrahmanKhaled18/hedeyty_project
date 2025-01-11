@@ -30,9 +30,9 @@ void main() {
       expect(find.byKey(const Key('signupScreen')), findsOneWidget);
 
       // Fill the Sign-Up Form
-      await tester.enterText(find.byKey(const Key('nameField')), 'omar');
+      await tester.enterText(find.byKey(const Key('nameField')), 'a');
       await tester.enterText(
-          find.byKey(const Key('emailField')), 'omar@gmail.com');
+          find.byKey(const Key('emailField')), 'om');
       await tester.enterText(
           find.byKey(const Key('passwordField')), 'omar1234');
 
